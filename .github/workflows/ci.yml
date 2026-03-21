@@ -1,0 +1,55 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  terraform:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Format
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate (Site A)
+        working-directory: terraform/siteA
+        run: terraform validate
+
+      - name: Terraform Validate (Site B)
+        working-directory: terraform/siteB
+        run: terraform validate
+
+  ansible:
+    name: Ansible Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Ansible
+        run: sudo apt-get update && sudo apt-get install -y ansible ansible-lint
+
+      - name: Run Ansible Lint
+        run: ansible-lint ansible/
+
+  markdown:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install markdownlint
+        run: sudo npm install -g markdownlint-cli
+
+      - name: Lint Markdown files
+        run: markdownlint "**/*.md"
