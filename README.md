@@ -1,7 +1,7 @@
 # 🏗️ Hybrid Proxmox Infrastructure  
 ### Secure, Automated & Scalable Multi‑Site Architecture
 
-`https://img.shields.io/badge/IaC-Terraform-623CE4`
+![Terraform](https://img.shields.io/badge/IaC-Terraform-623CE4)
 `https://img.shields.io/badge/Automation-Ansible-EE0000`
 `https://img.shields.io/badge/Platform-Proxmox-000000`
 `https://img.shields.io/badge/VPN-OpenVPN-F47B20`
