@@ -2,12 +2,11 @@
 ### Secure, Automated & Scalable Multi‑Site Architecture
 
 ![Terraform](https://img.shields.io/badge/IaC-Terraform-623CE4)
-`https://img.shields.io/badge/Automation-Ansible-EE0000`
-`https://img.shields.io/badge/Platform-Proxmox-000000`
-`https://img.shields.io/badge/VPN-OpenVPN-F47B20`
-`https://img.shields.io/badge/Firewall-pfSense-212121`
-`https://img.shields.io/badge/IPAM-NetBox-2D6DB2`
-`https://img.shields.io/badge/Observability-Elasticsearch-005571`
+![Ansible](https://img.shields.io/badge/Automation-Ansible-EE0000)
+![Proxmox](https://img.shields.io/badge/Platform-Proxmox-000000)
+![OpenVPN](https://img.shields.io/badge/VPN-OpenVPN-F47B20)
+![pfSense](https://img.shields.io/badge/Firewall-pfSense-212121)
+![Elasticsearch](https://img.shields.io/badge/Observability-Elasticsearch-005571)
 
 ---
 
