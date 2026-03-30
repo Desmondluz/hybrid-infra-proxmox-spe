@@ -1,0 +1,160 @@
+# Règles firewall consolidées pour l’infrastructure hybride SPE
+# Ce fichier décrit précisément les règles de filtrage, NAT, segmentation,
+# flux inter-sites, accès bastion, DNS forwarding et kill switch.
+
+siteA:                          # SITE ON-PREM (interne uniquement)
+  description: >
+    Règles de sécurité du site A. Ce site n’est pas exposé à Internet.
+    Tout accès externe doit passer par le bastion du site B ou par le VPN.
+    Le firewall pfSense du site A assure la segmentation LAN/Admin et
+    applique un modèle Zero Trust.
+
+  rules:
+    inbound:
+      - id: A-IN-01
+        action: allow
+        from: "10.10.10.0/24 (admin)"
+        to: "10.10.0.0/24 (lan)"
+        ports: "any"
+        description: >
+          Autorise le réseau d’administration à accéder aux services internes.
+          Accès réservé aux administrateurs.
+
+      - id: A-IN-02
+        action: allow
+        from: "172.16.0.2 (VPN Site B)"
+        to: "10.10.0.0/24"
+        ports: "any"
+        description: >
+          Autorise le trafic provenant du site B via le tunnel VPN.
+          Flux nécessaires pour supervision, DNS, IPAM et synchronisation.
+
+      - id: A-IN-03
+        action: deny
+        from: "any"
+        to: "10.10.10.0/24 (admin)"
+        description: >
+          Interdit tout accès non-administratif au réseau d’administration.
+          Protection des services critiques (pfSense, NetBox, Proxmox).
+
+    outbound:
+      - id: A-OUT-01
+        action: allow
+        from: "10.10.0.0/24"
+        to: "172.16.0.2"
+        description: >
+          Autorise le LAN du site A à joindre le site B via le VPN.
+
+      - id: A-OUT-02
+        action: deny
+        from: "10.10.0.0/24"
+        to: "wan"
+        description: >
+          Interdit toute sortie Internet directe depuis le site A.
+          Le site A n’est pas exposé et ne doit pas sortir sur Internet.
+
+  nat:
+    - id: A-NAT-01
+      type: "none"
+      description: >
+        Aucun NAT sortant : le site A ne doit pas accéder à Internet.
+        Le trafic inter-sites passe uniquement par le tunnel VPN.
+
+  killswitch:
+    - id: A-KS-01
+      action: block
+      from: "10.10.0.0/24"
+      to: "any"
+      condition: "VPN down"
+      description: >
+        Kill switch : si le tunnel VPN tombe, tout trafic sortant est bloqué.
+        Empêche les fuites de trafic vers Internet ou vers le site B.
+
+
+siteB:                          # SITE REMOTE (accessible depuis Internet)
+  description: >
+    Règles de sécurité du site B. Ce site est exposé à Internet et héberge
+    le bastion SSH ainsi que les services d’observabilité. Le firewall pfSense
+    applique une séparation stricte LAN/Services et protège l’accès au site A.
+
+  rules:
+    inbound:
+      - id: B-IN-01
+        action: allow
+        from: "0.0.0.0/0"
+        to: "192.168.0.10 (bastion)"
+        ports: "22/tcp"
+        description: >
+          Autorise l’accès SSH au bastion depuis Internet.
+          Point d’entrée unique vers l’infrastructure.
+
+      - id: B-IN-02
+        action: allow
+        from: "172.16.0.1 (VPN Site A)"
+        to: "192.168.10.20 (ElasticSearch)"
+        ports: "9200-9300/tcp"
+        description: >
+          Autorise le site A à envoyer ses logs vers ElasticSearch.
+
+      - id: B-IN-03
+        action: deny
+        from: "any"
+        to: "192.168.10.0/24 (services)"
+        description: >
+          Interdit tout accès direct aux services exposés, sauf règles explicites.
+
+    outbound:
+      - id: B-OUT-01
+        action: allow
+        from: "192.168.0.10 (bastion)"
+        to: "10.10.10.0/24 (admin Site A)"
+        ports: "22/tcp"
+        description: >
+          Autorise le bastion à accéder aux machines administratives du site A.
+          Accès strictement contrôlé et journalisé.
+
+      - id: B-OUT-02
+        action: allow
+        from: "192.168.10.20 (ElasticSearch)"
+        to: "internet"
+        ports: "443/tcp"
+        description: >
+          Autorise ElasticSearch à télécharger des plugins et mises à jour.
+
+  nat:
+    - id: B-NAT-01
+      type: "port-forward"
+      from: "wan"
+      to: "192.168.0.10"
+      ports: "22/tcp"
+      description: >
+        Redirection de port pour exposer le bastion SSH.
+
+  killswitch:
+    - id: B-KS-01
+      action: block
+      from: "192.168.0.0/24"
+      to: "10.10.0.0/24"
+      condition: "VPN down"
+      description: >
+        Kill switch : si le VPN tombe, le site B ne peut plus joindre le site A.
+        Empêche tout trafic non chiffré entre les sites.
+
+
+dns_forwarding:
+  description: >
+    DNS forwarding inter-sites. Le site A utilise le DNS du site B pour les
+    résolutions externes, et inversement pour les zones internes.
+  rules:
+    - id: DNS-01
+      from: "10.10.10.30 (DNS A)"
+      to: "192.168.0.30 (DNS B)"
+      ports: "53/udp"
+      action: allow
+      description: "Forwarding DNS A → B via VPN."
+    - id: DNS-02
+      from: "192.168.0.30 (DNS B)"
+      to: "10.10.10.30 (DNS A)"
+      ports: "53/udp"
+      action: allow
+      description: "Forwarding DNS B → A via VPN."
