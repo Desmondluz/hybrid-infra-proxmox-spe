@@ -15,10 +15,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
       - name: Install Ansible
         run: |
-          sudo apt update
-          sudo apt install -y ansible ansible-lint
+          pip install --upgrade ansible ansible-lint
 
       - name: Ansible Lint
         run: ansible-lint
