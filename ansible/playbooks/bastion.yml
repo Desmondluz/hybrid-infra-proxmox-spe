@@ -3,5 +3,6 @@
   hosts: localhost
   gather_facts: false
   tasks:
-    - debug:
+    - name: Show bastion placeholder message
+      ansible.builtin.debug:
         msg: "Placeholder playbook for bastion deployment"
