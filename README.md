@@ -12,7 +12,7 @@
 
 ## 🌍 Overview
 
-This project implements a **hybrid infrastructure** composed of **two Proxmox sites** (on‑premise and remote), securely interconnected through a **site‑to‑site VPN**, and designed to be **scalable** for future site onboarding.
+This project implements a **hybrid infrastructure** composed of **two Proxmox sites** (on‑premise and remote), securely interconnected through a **site‑to‑site VPN**, and designed to be **scalable** for future site onboarding
 
 The solution strictly follows the client requirements defined in the project specification :
 
