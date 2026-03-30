@@ -2,9 +2,9 @@ name: Ansible CI
 
 on:
   push:
-      branches: ["main", "dev"]
+    branches: ["main", "develop"]
   pull_request:
-        branches: ["main", "dev"]
+    branches: ["main", "develop"]
 
 jobs:
   ansible:
@@ -28,7 +28,7 @@ jobs:
         run: ansible-lint
 
       - name: Syntax Check
-        run: ansible-playbook -i inventories/siteA.ini playbooks/siteA.yml --syntax-check
+        run: ansible-playbook -i ansible/inventories/siteA.ini ansible/playbooks/siteA.yml --syntax-check
 
       - name: Check for forbidden secrets
         run: |
