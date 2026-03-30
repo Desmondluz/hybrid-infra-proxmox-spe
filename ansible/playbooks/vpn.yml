@@ -1,0 +1,8 @@
+---
+- name: VPN placeholder playbook
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Show VPN placeholder message
+      ansible.builtin.debug:
+        msg: "Placeholder playbook for VPN setup"

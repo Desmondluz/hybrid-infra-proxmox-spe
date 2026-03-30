@@ -14,6 +14,11 @@ jobs:
   terraform:
     name: Validate Terraform
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        path:
+          - terraform/siteA
+          - terraform/siteB
 
     steps:
       - name: Checkout repository
@@ -23,17 +28,17 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
-        run: terraform init
-        working-directory: ./terraform
+        run: terraform init -input=false
+        working-directory: ${{ matrix.path }}
 
       - name: Terraform Format Check
         run: terraform fmt -check
-        working-directory: ./terraform
+        working-directory: ${{ matrix.path }}
 
       - name: Terraform Validate
         run: terraform validate
-        working-directory: ./terraform
+        working-directory: ${{ matrix.path }}
 
       - name: Terraform Plan
         run: terraform plan -no-color
-        working-directory: ./terraform
+        working-directory: ${{ matrix.path }}

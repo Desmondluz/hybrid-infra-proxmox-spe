@@ -1,0 +1,8 @@
+---
+- name: Site A placeholder playbook
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Show Site A placeholder message
+      ansible.builtin.debug:
+        msg: "Placeholder playbook for Site A configuration"

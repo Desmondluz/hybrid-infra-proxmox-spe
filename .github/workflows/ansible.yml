@@ -32,7 +32,7 @@ jobs:
 
       - name: Check for forbidden secrets
         run: |
-          if grep -R "BEGIN RSA PRIVATE KEY" -n .; then
+          if grep -R --exclude-dir=.github --exclude-dir=.git "BEGIN RSA PRIVATE KEY" -n .; then
             echo "❌ Secret detected in repository"
             exit 1
           fi

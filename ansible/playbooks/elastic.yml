@@ -1,0 +1,8 @@
+---
+- name: Elasticsearch placeholder playbook
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Show elastic placeholder message
+      ansible.builtin.debug:
+        msg: "Placeholder playbook for elastic deployment"
