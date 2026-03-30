@@ -1,0 +1,34 @@
+name: Ansible CI
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  ansible:
+    name: Validate Ansible
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible ansible-lint
+
+      - name: Ansible Lint
+        run: ansible-lint
+
+      - name: Syntax Check
+        run: ansible-playbook -i inventories/siteA.ini playbooks/siteA.yml --syntax-check
+
+      - name: Check for forbidden secrets
+        run: |
+          if grep -R "BEGIN RSA PRIVATE KEY" -n .; then
+            echo "❌ Secret detected in repository"
+            exit 1
+          fi
