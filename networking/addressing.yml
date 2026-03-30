@@ -1,0 +1,127 @@
+# Plan d’adressage complet de l’infrastructure hybride SPE
+# Ce fichier décrit précisément les sous-réseaux, les rôles de chaque zone,
+# les IP des composants critiques et la topologie du tunnel VPN.
+
+siteA:                          # SITE ON-PREM (interne uniquement)
+  name: "Site A - On-Prem"
+  description: >
+    Site principal hébergé en local. Héberge les services internes critiques :
+    pfSense (firewall), NetBox (IPAM), DNS interne et supervision. Ce site n’est
+    pas exposé à Internet : tout accès passe par le VPN ou par le bastion du site B.
+
+  networks:
+    lan:
+      cidr: 10.10.0.0/24
+      description: >
+        Réseau interne principal du site A. Héberge les services internes non exposés,
+        machines de gestion, et communications inter-services.
+    admin:
+      cidr: 10.10.10.0/24
+      description: >
+        Réseau d’administration réservé aux composants critiques : pfSense, NetBox,
+        interface Proxmox, DNS interne. Accès strictement limité.
+    vpn_tunnel:
+      cidr: 172.16.0.0/30
+      description: >
+        Sous-réseau point-à-point utilisé pour le tunnel VPN OpenVPN reliant Site A
+        et Site B. Transporte le trafic inter-sites.
+
+  hosts:
+    pfsense:
+      ip_lan: 10.10.0.1
+      ip_admin: 10.10.10.1
+      vpn_endpoint: 172.16.0.1
+      description: >
+        Firewall principal du site A. Gère le routage interne, le DNS forwarding,
+        les règles de sécurité et l’extrémité du tunnel VPN.
+    netbox:
+      ip: 10.10.10.20
+      description: >
+        IPAM centralisé. Source de vérité pour les préfixes, IP, VLANs et équipements.
+        Synchronisé avec Ansible pour l’automatisation.
+    dns_forwarder:
+      ip: 10.10.10.30
+      description: >
+        DNS interne du site A. Transfère les requêtes externes vers le DNS du site B
+        via le tunnel VPN (DNS forwarding inter-sites).
+    monitoring_probe:
+      ip: 10.10.10.40
+      description: >
+        Système de supervision interne. Vérifie la disponibilité du VPN, du firewall,
+        du DNS et des services critiques.
+
+siteB:                          # SITE REMOTE (accessible depuis Internet)
+  name: "Site B - Remote"
+  description: >
+    Site distant exposé à Internet. Héberge le bastion SSH (point d’entrée unique),
+    ElasticSearch (observabilité), et les services accessibles depuis l’extérieur.
+    Sert également de passerelle sécurisée vers le site A.
+
+  networks:
+    lan:
+      cidr: 192.168.0.0/24
+      description: >
+        Réseau interne du site B. Héberge le bastion SSH et les services internes
+        non exposés publiquement.
+    services:
+      cidr: 192.168.10.0/24
+      description: >
+        Réseau dédié aux services exposés ou critiques : ElasticSearch, Kibana,
+        pipelines de logs. Séparé du LAN pour limiter les risques.
+    vpn_tunnel:
+      cidr: 172.16.0.0/30
+      description: >
+        Sous-réseau partagé avec Site A pour le tunnel VPN. L’IP .2 est utilisée
+        par pfSense du site B.
+
+  hosts:
+    pfsense:
+      ip_lan: 192.168.0.1
+      ip_services: 192.168.10.1
+      vpn_endpoint: 172.16.0.2
+      description: >
+        Firewall du site B. Gère l’accès Internet, le bastion, les règles de sécurité
+        et l’extrémité du tunnel VPN vers Site A.
+    bastion:
+      ip: 192.168.0.10
+      description: >
+        Point d’entrée unique vers l’infrastructure. Accès SSH restreint, journalisé
+        et supervisé. Obligatoire pour accéder au site A.
+    elasticsearch:
+      ip: 192.168.10.20
+      description: >
+        Plateforme d’observabilité centralisée. Collecte les logs de pfSense, du
+        bastion et des services critiques.
+    dns_forwarder:
+      ip: 192.168.0.30
+      description: >
+        DNS secondaire. Sert de relais pour les requêtes provenant du site A via
+        le tunnel VPN.
+
+vpn:
+  description: >
+    Tunnel VPN site-à-site OpenVPN assurant la communication sécurisée entre les
+    deux sites. Transporte les flux internes, DNS, supervision et synchronisation IPAM.
+  tunnel_network: 172.16.0.0/30
+  endpoints:
+    siteA: 172.16.0.1
+    siteB: 172.16.0.2
+  routes:
+    siteA_to_siteB:
+      - 192.168.0.0/24
+      - 192.168.10.0/24
+    siteB_to_siteA:
+      - 10.10.0.0/24
+      - 10.10.10.0/24
+
+ipam:
+  tool: "NetBox"
+  authoritative_source: true
+  description: >
+    NetBox est la source de vérité pour l’ensemble du plan d’adressage. Tous les
+    préfixes, IP et équipements sont documentés et synchronisés avec Ansible.
+  managed_prefixes:
+    - 10.10.0.0/24
+    - 10.10.10.0/24
+    - 192.168.0.0/24
+    - 192.168.10.0/24
