@@ -1,0 +1,63 @@
+# Topologie du VPN site-à-site OpenVPN
+# Ce fichier décrit la structure du tunnel, les routes annoncées,
+# les flux autorisés et les dépendances inter-sites.
+
+vpn:
+  name: "VPN Site A ↔ Site B"
+  type: "OpenVPN site-to-site"
+  protocol: "UDP"
+  port: 1194
+
+  tunnel_network:
+    cidr: 172.16.0.0/30
+    description: >
+      Sous-réseau point-à-point utilisé pour le tunnel VPN. .1 = Site A (serveur),
+      .2 = Site B (client).
+
+  endpoints:
+    siteA:
+      role: "server"
+      ip: 172.16.0.1
+      pfsense_interface: "WAN"
+      description: >
+        Extrémité serveur du tunnel. Hébergée sur pfSense du site A.
+    siteB:
+      role: "client"
+      ip: 172.16.0.2
+      pfsense_interface: "WAN"
+      description: >
+        Extrémité cliente du tunnel. Hébergée sur pfSense du site B.
+
+  routes:
+    siteA_to_siteB:
+      - cidr: 192.168.0.0/24
+        description: "LAN du site B"
+      - cidr: 192.168.10.0/24
+        description: "Réseau des services (ElasticSearch)"
+    siteB_to_siteA:
+      - cidr: 10.10.0.0/24
+        description: "LAN du site A"
+      - cidr: 10.10.10.0/24
+        description: "Réseau d’administration du site A"
+
+  dependencies:
+    dns:
+      - "10.10.10.30 (DNS A)"
+      - "192.168.0.30 (DNS B)"
+    monitoring:
+      - "10.10.10.40 (Probe A)"
+    ipam:
+      - "10.10.10.20 (NetBox)"
+
+  security:
+    cipher: "AES-256-GCM"
+    auth: "SHA256"
+    tls_version: "1.2+"
+    description: >
+      Paramètres de sécurité conformes aux bonnes pratiques OpenVPN.
+      Les certificats sont stockés dans Vault et jamais dans GitHub.
+
+  notes:
+    - "Le tunnel transporte les flux internes, DNS, supervision et IPAM."
+    - "Le site A n’a aucune sortie Internet directe : tout passe par le VPN."
+    - "Le bastion du site B est le seul point d’entrée externe."
