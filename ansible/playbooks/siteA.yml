@@ -1,0 +1,7 @@
+---
+- name: Site A placeholder playbook
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - debug:
+        msg: "Placeholder playbook for Site A configuration"

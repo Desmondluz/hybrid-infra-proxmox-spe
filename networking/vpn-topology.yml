@@ -14,10 +14,7 @@ vpn:
   tunnel_network:
     cidr: 172.16.0.0/30
     description: >
-      Sous-réseau point-à-point dédié au tunnel VPN. 
-      .1 = extrémité Site A (serveur), .2 = extrémité Site B (client).
-      Ce réseau transporte exclusivement les flux inter-sites.
-
+          Sous-réseau point-à-point dédié au tunnel VPN.
   endpoints:
     siteA:
       role: "server"
