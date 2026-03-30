@@ -7,6 +7,12 @@
 ![OpenVPN](https://img.shields.io/badge/VPN-OpenVPN-F47B20)
 ![pfSense](https://img.shields.io/badge/Firewall-pfSense-212121)
 ![Elasticsearch](https://img.shields.io/badge/Observability-Elasticsearch-005571)
+## Status CI/CD
+
+![Terraform CI](https://github.com/Desmondluz/Projects/hybrid-infra-proxmox-spe/actions/workflows/terraform.yml/badge.svg)
+![Ansible CI](https://github.com/Desmondluz/Projects/hybrid-infra-proxmox-spe/actions/workflows/ansible.yml/badge.svg)
+![Quality Checks](https://github.com/Desmondluz/Projects/hybrid-infra-proxmox-spe/actions/workflows/quality.yml/badge.svg)
+
 
 ---
 
