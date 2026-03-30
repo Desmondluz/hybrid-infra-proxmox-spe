@@ -1,63 +1,89 @@
 # Topologie du VPN site-à-site OpenVPN
-# Ce fichier décrit la structure du tunnel, les routes annoncées,
-# les flux autorisés et les dépendances inter-sites.
+# Aligné avec les exigences du SPE :
+# - Interconnexion sécurisée entre Site A (on-prem) et Site B (remote)
+# - Transport des flux internes, DNS, supervision, IPAM
+# - Séparation stricte des réseaux
+# - Architecture extensible pour l’ajout futur de sites
 
 vpn:
   name: "VPN Site A ↔ Site B"
   type: "OpenVPN site-to-site"
-  protocol: "UDP"
+  protocol: "udp"
   port: 1194
 
   tunnel_network:
     cidr: 172.16.0.0/30
     description: >
-      Sous-réseau point-à-point utilisé pour le tunnel VPN. .1 = Site A (serveur),
-      .2 = Site B (client).
+      Sous-réseau point-à-point dédié au tunnel VPN. 
+      .1 = extrémité Site A (serveur), .2 = extrémité Site B (client).
+      Ce réseau transporte exclusivement les flux inter-sites.
 
   endpoints:
     siteA:
       role: "server"
       ip: 172.16.0.1
-      pfsense_interface: "WAN"
       description: >
-        Extrémité serveur du tunnel. Hébergée sur pfSense du site A.
+        Site A (on-prem) héberge l’extrémité serveur du tunnel.
+        C’est le site interne, non exposé à Internet, qui dépend du VPN
+        pour toute communication externe (exigence SPE).
     siteB:
       role: "client"
       ip: 172.16.0.2
-      pfsense_interface: "WAN"
       description: >
-        Extrémité cliente du tunnel. Hébergée sur pfSense du site B.
+        Site B (remote) héberge l’extrémité cliente du tunnel.
+        C’est le site exposé à Internet, qui sert de passerelle sécurisée
+        vers Site A et héberge le bastion.
 
   routes:
     siteA_to_siteB:
       - cidr: 192.168.0.0/24
-        description: "LAN du site B"
+        description: "LAN du site B (bastion, DNS secondaire)"
       - cidr: 192.168.10.0/24
-        description: "Réseau des services (ElasticSearch)"
+        description: "Réseau Services du site B (ElasticSearch / observabilité)"
+
     siteB_to_siteA:
       - cidr: 10.10.0.0/24
-        description: "LAN du site A"
+        description: "LAN du site A (services internes)"
       - cidr: 10.10.10.0/24
-        description: "Réseau d’administration du site A"
+        description: "Réseau Admin du site A (NetBox, DNS interne, supervision)"
 
-  dependencies:
-    dns:
-      - "10.10.10.30 (DNS A)"
-      - "192.168.0.30 (DNS B)"
-    monitoring:
-      - "10.10.10.40 (Probe A)"
-    ipam:
-      - "10.10.10.20 (NetBox)"
+  transported_services:
+    - name: "DNS forwarding"
+      description: >
+        Le SPE impose un DNS forwarding entre les deux sites.
+        Toutes les requêtes DNS inter-sites transitent par le VPN.
+    - name: "IPAM sync"
+      description: >
+        NetBox (site A) doit rester la source de vérité.
+        Le VPN transporte les appels API et synchronisations.
+    - name: "Observability"
+      description: >
+        Les logs du site A sont envoyés vers ElasticSearch (site B).
+    - name: "Admin access"
+      description: >
+        Le bastion du site B accède au réseau Admin du site A via le VPN.
 
   security:
     cipher: "AES-256-GCM"
     auth: "SHA256"
-    tls_version: "1.2+"
+    tls_min_version: "1.2"
+    pfs: "enabled"
     description: >
-      Paramètres de sécurité conformes aux bonnes pratiques OpenVPN.
-      Les certificats sont stockés dans Vault et jamais dans GitHub.
+      Paramètres conformes aux bonnes pratiques OpenVPN.
+      Les certificats et clés sont stockés dans un coffre sécurisé
+      (Vault ou équivalent), conformément aux exigences SPE.
+
+  scalability:
+    description: >
+      Le SPE exige une architecture permettant l’ajout futur de sites.
+      Le plan d’adressage et la topologie VPN sont conçus pour intégrer
+      facilement un Site C, D, etc.
+    future_sites_prefix:
+      cidr: "172.16.1.0/24"
+      description: "Plage réservée pour les futurs tunnels inter-sites."
 
   notes:
-    - "Le tunnel transporte les flux internes, DNS, supervision et IPAM."
-    - "Le site A n’a aucune sortie Internet directe : tout passe par le VPN."
-    - "Le bastion du site B est le seul point d’entrée externe."
+    - "Le tunnel VPN est obligatoire pour toute communication entre les sites."
+    - "Le site A n’a aucune sortie Internet directe (exigence SPE)."
+    - "Le bastion du site B est le seul point d’entrée externe autorisé."
+    - "Le VPN transporte supervision, DNS, IPAM et flux applicatifs internes."
