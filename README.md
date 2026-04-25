@@ -1,257 +1,228 @@
-# 🏗️ Hybrid Proxmox Infrastructure  
-### Secure, Automated & Scalable Multi‑Site Architecture
+# Hybrid Proxmox Infrastructure — CIA (GR46)
 
-![Terraform](https://img.shields.io/badge/IaC-Terraform-623CE4)
-![Ansible](https://img.shields.io/badge/Automation-Ansible-EE0000)
-![Proxmox](https://img.shields.io/badge/Platform-Proxmox-000000)
-![OpenVPN](https://img.shields.io/badge/VPN-OpenVPN-F47B20)
+![Terraform](https://img.shields.io/badge/IaC-Terraform%201.7-623CE4)
+![Ansible](https://img.shields.io/badge/Automation-Ansible%202.16-EE0000)
+![Proxmox](https://img.shields.io/badge/Platform-Proxmox%208-000000)
+![OpenVPN](https://img.shields.io/badge/VPN-OpenVPN%20AES--256--GCM-F47B20)
 ![pfSense](https://img.shields.io/badge/Firewall-pfSense-212121)
-![Elasticsearch](https://img.shields.io/badge/Observability-Elasticsearch-005571)
-## Status CI/CD
+![Elastic](https://img.shields.io/badge/Observability-Elastic%208-005571)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-![Terraform CI](https://github.com/Desmondluz/hybrid-infra-proxmox-spe/actions/workflows/terraform.yml/badge.svg)
-![Ansible CI](https://github.com/Desmondluz/hybrid-infra-proxmox-spe/actions/workflows/ansible.yml/badge.svg)
-![Quality Checks](https://github.com/Desmondluz/hybrid-infra-proxmox-spe/actions/workflows/quality.yml/badge.svg)
+![terraform](https://github.com/Desmondluz/hybrid-infra-proxmox-spe/actions/workflows/terraform.yml/badge.svg)
+![ansible](https://github.com/Desmondluz/hybrid-infra-proxmox-spe/actions/workflows/ansible.yml/badge.svg)
+![quality](https://github.com/Desmondluz/hybrid-infra-proxmox-spe/actions/workflows/quality.yml/badge.svg)
+![security-scan](https://github.com/Desmondluz/hybrid-infra-proxmox-spe/actions/workflows/security-scan.yml/badge.svg)
 
-
----
-
-## 🌍 Overview
-
-This project implements a **hybrid infrastructure** composed of **two Proxmox sites** (on‑premise and remote), securely interconnected through a **site‑to‑site VPN**, and designed to be **scalable** for future site onboarding
-
-The solution strictly follows the client requirements defined in the project specification :
-
-- Secure inter‑site connectivity  
-- Strong network segmentation  
-- Automated provisioning (IaC)  
-- Centralized observability  
-- Automated IP management  
-- Bastion‑based remote access  
-- DNS forwarding between sites  
-- Internal‑only website  
-- Disaster recovery documentation  
+> **Projet Epitech T-NSA-810-REP25 — CIA · Deployment and Securing of a
+> Hybrid Infrastructure with Proxmox.** Infrastructure hybride à deux sites
+> Proxmox, reliés par un tunnel OpenVPN, entièrement déployée en Infrastructure
+> as Code (Terraform + Ansible) et audit-friendly : segmentation, bastion,
+> NetBox comme source de vérité IPAM, stack Elastic pour la centralisation
+> des logs, killswitch déclenché à la demande, DRP testable, secrets gérés
+> via SOPS + Vault.
 
 ---
 
-# 🧱 Architecture
+## Sommaire
 
-The infrastructure is built around **two Proxmox sites**:
-
-- 🏢 **Site A (On‑Premise)** — Core services  
-- 🌐 **Site B (Remote)** — Lightweight remote environment  
-
-### 🔒 Network Segmentation
-
-Each site is divided into:
-
-- **Admin network** (Proxmox, pfSense, management)  
-- **Services network** (NetBox, Elastic, internal website)  
-- **LAN network** (user workloads)  
-
-This segmentation enforces least privilege, as required by the project .
+1. [Architecture](#architecture)
+2. [Arborescence du dépôt](#arborescence-du-dépôt)
+3. [Pré-requis](#pré-requis)
+4. [Démarrage rapide](#démarrage-rapide)
+5. [Cycle de déploiement](#cycle-de-déploiement)
+6. [Opérations courantes](#opérations-courantes)
+7. [Sécurité & secrets](#sécurité--secrets)
+8. [Observabilité](#observabilité)
+9. [Tests & qualité](#tests--qualité)
+10. [Contribuer](#contribuer)
+11. [Documentation détaillée](#documentation-détaillée)
 
 ---
 
-## 🔗 Site‑to‑Site VPN
+## Architecture
 
-- OpenVPN tunnel  
-- Encrypted routed subnets  
-- Firewall‑controlled flows  
-- **Emergency kill switch** on both pfSense firewalls  
-- DNS forwarding between sites (mandatory requirement)  
+Deux sites indépendants, reliés par un tunnel OpenVPN site-à-site
+(`172.16.0.0/30`, UDP/1194, AES-256-GCM + SHA256 + tls-crypt) :
 
----
+- **Site A (on-premise)** — 10.10.0.0/24 (LAN) + 10.10.10.0/24 (ADMIN)
+  - `pfsense-s1` · firewall + OpenVPN server
+  - `services-s1` · NetBox (IPAM) + webapp interne derrière Caddy TLS
+  - `observability-s1` · Elasticsearch + Kibana + Logstash
+- **Site B (remote)** — 192.168.0.0/24 (LAN) + 192.168.10.0/24 (SERVICES)
+  - `pfsense-s2` · firewall + OpenVPN client
+  - `bastion-s2` · point d'entrée SSH unique (MFA TOTP, fail2ban, audit)
+  - `services-s2` · forwarder DNS, filebeat, services locaux
 
-## 🧍 Bastion Host
+Contrainte sujet respectée : 3 VMs max par site.
 
-- Located in **Site B**  
-- Only entry point for external SSH access  
-- Logged and monitored  
-- Required for remote site access   
+Schémas : [`docs/architecture/README.md`](docs/architecture/README.md)
+(fallbacks Mermaid rendus directement par GitHub + sources `.drawio`).
 
----
-
-## 🧩 Centralized Services (Site A)
-
-| Service | Description |
-|--------|-------------|
-| **NetBox** | IPAM / Source of Truth, automatically updated |
-| **Elasticsearch** | Centralized logs & observability |
-| **Internal Website** | Accessible only from LAN/Services networks |
-
-These services must be clearly located in the architecture diagram .
-
----
-
-## 📊 Architecture Diagrams
-
-All diagrams are available in:
+## Arborescence du dépôt
 
 ```
-docs/architecture/
-```
-
-They include:
-
-- Global infrastructure diagram  
-- VPN topology  
-- Firewall rules  
-- DNS forwarding flow  
-
----
-
-# 🚀 Core Features
-
-- 🏗️ Hybrid infrastructure (2 Proxmox sites)  
-- 🔐 OpenVPN site‑to‑site VPN  
-- 🔥 pfSense firewalls with kill switch  
-- 🧍 Bastion host for secure external access  
-- 🌐 DNS forwarding between sites  
-- 🗂️ NetBox IPAM with automated updates  
-- 📊 Elasticsearch for centralized logging  
-- 🕸️ Internal website (private access only)  
-- 🔁 Full IaC reproducibility (Terraform + Ansible)  
-- 📈 Multi‑site ready architecture  
-
----
-
-# ⚙️ Technology Stack
-
-| Layer              | Technology       |
-|-------------------|-----------------|
-| Virtualization    | Proxmox VE      |
-| Infrastructure    | Terraform       |
-| Configuration     | Ansible         |
-| VPN               | OpenVPN         |
-| Firewall          | pfSense         |
-| Bastion           | Linux (SSH)     |
-| IPAM              | NetBox          |
-| Observability     | Elasticsearch   |
-| Internal Website  | Nginx / Apache  |
-| Secrets           | Vault           |
-
----
-
-# 📁 Project Structure
-
-```
-hybrid-infra-proxmox-spe/
-├── docs/
-│   ├── architecture/
-│   ├── runbooks/
-│   ├── drp/
-│   ├── backlog/
-│   └── gantt/
-├── terraform/
+.
+├── terraform/          # modules réutilisables + stacks siteA / siteB
+│   ├── modules/
+│   │   ├── proxmox-vm/
+│   │   └── network/
 │   ├── siteA/
-│   ├── siteB/
-│   └── modules/
-├── ansible/
+│   └── siteB/
+├── ansible/            # rôles, playbooks, inventaires, group_vars
+│   ├── roles/          # common, openvpn, pfsense, netbox, elasticsearch,
+│   │                   # kibana, logstash, bastion, dns-forwarder, webapp,
+│   │                   # filebeat
+│   ├── playbooks/      # siteA, siteB, vpn, bastion, elastic, killswitch, site
 │   ├── inventories/
-│   ├── roles/
-│   ├── playbooks/
 │   └── group_vars/
-├── vault/
-├── configs/
-├── networking/
+├── configs/            # références auditables (pfSense XML, openvpn, dns, es)
+├── vault/              # scripts init + policies HCL (Vault + SOPS)
+├── networking/         # addressing.yml · vpn-topology.yml (source de vérité)
+├── docs/               # runbooks, architecture, DRP, backlog, onboarding
+├── .github/            # workflows + templates PR/Issue
+├── CONTRIBUTING.md
+├── CRITERES.md         # état des 29 + 4 critères d'évaluation
+├── LICENSE
 └── README.md
 ```
 
-This structure matches the expected deliverables .
+## Pré-requis
 
----
+Outils locaux (versions testées) :
 
-# ⚡ Deployment
+- Terraform `1.7.5`
+- Ansible `2.16.x` + collections (`ansible-galaxy install -r ansible/requirements.yml`)
+- Python `3.11`
+- `sops` `3.9` + `age` `1.1`
+- `vault` `1.15` (si bootstrap secrets)
+- `pre-commit` `3.7` (`pre-commit install`)
 
-## 1. Clone the repository
+Accès requis :
+
+- API Proxmox (token) pour chaque cluster (token stocké dans Vault).
+- Clef publique SSH admin (injectée par cloud-init dans les VM).
+- Clef age pour SOPS (`age-keygen`, publique ajoutée à `.sops.yaml`).
+
+## Démarrage rapide
 
 ```bash
-git clone https://github.com/your-repo/hybrid-infra-proxmox-spe.git
+# 1. Cloner
+git clone git@github.com:Desmondluz/hybrid-infra-proxmox-spe.git
 cd hybrid-infra-proxmox-spe
-```
 
-## 2. Deploy infrastructure (Terraform)
+# 2. Hooks qualité
+pre-commit install
 
-Site A:
+# 3. Variables Terraform (exemple)
+cp terraform/siteA/terraform.tfvars.example terraform/siteA/terraform.tfvars
+sops terraform/siteA/terraform.tfvars   # chiffré via .sops.yaml
 
-```bash
+# 4. Provisionner Site A
 cd terraform/siteA
 terraform init
 terraform apply
+
+# 5. Configurer Site A
+cd ../../ansible
+ansible-playbook -i inventories/siteA.ini playbooks/siteA.yml
+
+# 6. Idem Site B + tunnel VPN
+cd ../terraform/siteB && terraform apply
+cd ../../ansible
+ansible-playbook -i inventories/siteB.ini playbooks/siteB.yml
+ansible-playbook playbooks/vpn.yml
 ```
 
-Site B:
+Temps visé du bootstrap end-to-end : **< 2 h** (cf. `docs/backlog/followup3.md`).
 
-```bash
-cd terraform/siteB
-terraform init
-terraform apply
+## Cycle de déploiement
+
+```
+feature/xxx  →  PR  →  CI (terraform · ansible · quality · security-scan)
+                  →  review + approbation
+                  →  merge develop
+                  →  deploy staging
+                  →  merge main
+                  →  deploy prod (manuel)
 ```
 
-## 3. Configure services (Ansible)
+Conventions dans [`CONTRIBUTING.md`](CONTRIBUTING.md) : Conventional Commits,
+branches courtes, PR template obligatoire.
 
-```bash
-ansible-playbook -i inventories/siteA.ini ansible/playbooks/siteA.yml
-ansible-playbook -i inventories/siteB.ini ansible/playbooks/siteB.yml
-```
+## Opérations courantes
 
-## 4. Deploy core services
+- **Activer / désactiver le killswitch** : `ansible-playbook playbooks/killswitch.yml -e killswitch_state=active -e site=siteA` — [`runbook`](docs/runbooks/killswitch.md)
+- **Rotation cert OpenVPN** : `./vault/scripts/generate-certs.sh` puis `ansible-playbook playbooks/vpn.yml --tags pki` — [`runbook`](docs/runbooks/vpn.md)
+- **Restauration pfSense** : `git show <commit>:configs/pfsense/siteA-config.xml` — [`runbook`](docs/runbooks/pfsense.md)
+- **Seed NetBox** : `python3 ansible/roles/netbox/files/seed_netbox.py networking/addressing.yml`
+- **Onboarding d'un nouveau site** : [`docs/onboarding-new-site.md`](docs/onboarding-new-site.md)
 
-```bash
-ansible-playbook ansible/playbooks/vpn.yml
-ansible-playbook ansible/playbooks/bastion.yml
-ansible-playbook ansible/playbooks/elastic.yml
-ansible-playbook ansible/playbooks/internal_website.yml
-```
+Runbooks couvrant la bonne marche quotidienne :
+[vpn](docs/runbooks/vpn.md) · [pfsense](docs/runbooks/pfsense.md) ·
+[bastion](docs/runbooks/bastion.md) · [elasticsearch](docs/runbooks/elasticsearch.md) ·
+[killswitch](docs/runbooks/killswitch.md) · [netbox](docs/runbooks/netbox.md) ·
+[secrets](docs/runbooks/secrets.md).
+
+## Sécurité & secrets
+
+- SSH : clef + MFA TOTP sur le bastion Site B, pas de password auth.
+- Firewall : default `block`, règles explicites et commentées ; segmentation
+  `LAN` → `ADMIN` interdite. Matrice : [`docs/access-matrix.md`](docs/access-matrix.md).
+- OpenVPN : TLS 1.2+, AES-256-GCM, tls-crypt, PKI via Vault.
+- Secrets statiques : SOPS + age (`.sops.yaml`). Dynamiques : Vault (KV-v2
+  + PKI). Procédure de rotation : [`docs/runbooks/secrets.md`](docs/runbooks/secrets.md).
+- `.gitleaks.toml` + pre-commit `gitleaks` bloquent les fuites avant push.
+
+## Observabilité
+
+Stack Elastic (single-node, ILM `cia-30d`) sur `observability-s1`. Filebeat
+expédie depuis toutes les VM Linux vers Logstash (port 5044). pfSense envoie
+en syslog UDP/5514. Pipelines pré-configurés :
+
+- `cia-pfsense-*` (filterlog parsé)
+- `cia-ssh-*` (succès/échecs SSH)
+- `cia-openvpn-*` (handshakes, reneg, down)
+- `cia-netbox-*` (audit NetBox)
+
+Dashboards Kibana versionnés sous `docs/dashboards/` (snapshots
+`saved_objects`).
+
+## Tests & qualité
+
+Tous les PR passent :
+
+- `terraform fmt -check`, `terraform validate`, `tflint`, `terraform plan` à sec.
+- `ansible-lint` + `yamllint` + `ansible-playbook --syntax-check` sur tous les sites.
+- `pre-commit run --all-files` (fmt, markdownlint, shellcheck, gitleaks).
+- `gitleaks`, `trufflehog`, `checkov`, `tfsec` (SARIF remonté dans l'onglet
+  *Security* GitHub).
+
+Voir `.github/workflows/` pour le détail.
+
+## Contribuer
+
+Toute contribution passe par une PR. Rappels :
+
+- Une PR = une préoccupation.
+- Commits Conventional Commits (`feat:`, `fix:`, `docs:`, `ops:`, `ci:`).
+- PR template rempli (motivation, preuves, runbook impacté).
+- Vert sur tous les workflows CI.
+- Reviewer obligatoire.
+
+Détails : [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+## Documentation détaillée
+
+- **Architecture** : [`docs/architecture/`](docs/architecture/)
+- **Runbooks** : [`docs/runbooks/`](docs/runbooks/)
+- **Plan de reprise d'activité** : [`docs/drp/drp.md`](docs/drp/drp.md)
+- **Matrice d'accès** : [`docs/access-matrix.md`](docs/access-matrix.md)
+- **Choix techniques (ADR)** : [`docs/tech-choices.md`](docs/tech-choices.md)
+- **Onboarding nouveau site** : [`docs/onboarding-new-site.md`](docs/onboarding-new-site.md)
+- **Backlogs follow-ups** : [`docs/backlog/`](docs/backlog/)
+- **Gantt + keynote** : [`docs/gantt/`](docs/gantt/) · [`docs/backlog/keynote.md`](docs/backlog/keynote.md)
+- **État des 29 + 4 critères** : [`CRITERES.md`](CRITERES.md)
 
 ---
 
-# 🔒 Security
-
-Security is enforced at every layer:
-
-- Least privilege  
-- Default‑deny firewall rules  
-- Segmentation (Admin / LAN / Services)  
-- Bastion‑only external access  
-- Encrypted VPN communications  
-- Secure secrets storage (Vault)  
-- Emergency kill switch  
-- Logged administrative access  
-
----
-
-# 🔄 Disaster Recovery
-
-The project includes a complete DRP:
-
-- Rebuild procedures (IaC + runbooks)  
-- Backup & restore strategy  
-- VPN recovery  
-- Firewall rollback  
-- Service restoration  
-
-📄 Documentation:  
-```
-docs/drp/drp.md
-```
-
----
-
-# 📊 Project Management
-
-- Backlog: `docs/backlog/`  
-- Gantt chart: `docs/gantt/gantt.png`  
-- Follow‑ups: scoping → build → beta → final delivery  
-
----
-
-# ⚠️ Constraints
-
-- **3 VMs maximum per Proxmox site** (mandatory)  
-- **Actively maintained technologies only**  
-- **Full documentation required**  
-- **Infrastructure must be fully reproducible via IaC**  
-
----
+*Projet GR46 — Epitech 2025-2026 — MIT License.*

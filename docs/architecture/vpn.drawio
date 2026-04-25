@@ -1,0 +1,37 @@
+<mxfile host="app.diagrams.net" modified="2026-04-18T00:00:00.000Z" agent="GR46" version="24.0.0" type="device">
+  <diagram id="cia-vpn" name="CIA — Tunnel VPN">
+    <mxGraphModel dx="1422" dy="754" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Topologie VPN — OpenVPN site-à-site (AES-256-GCM / SHA256 / tls-crypt)" style="text;html=1;fontSize=16;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="300" y="40" width="1000" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="server" value="OpenVPN SERVER&#10;Site A · pfsense-s1&#10;172.16.0.1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="120" y="240" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="client" value="OpenVPN CLIENT&#10;Site B · pfsense-s2&#10;172.16.0.2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="240" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tun" value="UDP 1194 · TLS 1.2+ · AES-256-GCM · SHA256" style="shape=mxgraph.mscae.enterprise.vpn_connection;html=1;labelBackgroundColor=#ffffff;align=center;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="270" width="900" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tunEdge" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=3;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="server" target="client">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="routeA" value="Routes poussées vers le client :&#10;  push &quot;route 10.10.0.0 255.255.255.0&quot;&#10;  push &quot;route 10.10.10.0 255.255.255.0&quot;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="400" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="routeB" value="Routes côté server pour le LAN Site B :&#10;  route 192.168.0.0 255.255.255.0&#10;  route 192.168.10.0 255.255.255.0" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="400" width="420" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="pki" value="PKI via HashiCorp Vault&#10;mount: pki_cia_vpn&#10;CN server: cia-vpn-server-siteA&#10;CN client: cia-vpn-client-siteB&#10;CA: 10 ans · leaf: 1 an" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;" vertex="1" parent="1">
+          <mxGeometry x="540" y="520" width="360" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="notes" value="Notes&#10;▸ tls-crypt statique (kv/cia/openvpn/tls-crypt) — auth layer avant TLS&#10;▸ reneg-sec 3600 — rotation session key toutes les 1 h&#10;▸ pas de redirect-gateway — trafic Internet reste local&#10;▸ killswitch WAN déclenche chute du tunnel (attendu)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="540" y="680" width="560" height="110" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

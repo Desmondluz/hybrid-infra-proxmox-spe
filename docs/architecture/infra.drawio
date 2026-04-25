@@ -1,0 +1,64 @@
+<mxfile host="app.diagrams.net" modified="2026-04-18T00:00:00.000Z" agent="GR46" version="24.0.0" type="device">
+  <diagram id="cia-infra" name="CIA — Infrastructure">
+    <mxGraphModel dx="1422" dy="754" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="internet" value="Internet" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="720" y="40" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="siteA" value="Site A — On-prem (Proxmox)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="80" y="180" width="640" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="siteB" value="Site B — Remote (Proxmox)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="860" y="180" width="640" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="pfsA" value="pfsense-s1&#10;10.10.0.1 / 10.10.10.1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="140" y="240" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pfsB" value="pfsense-s2&#10;192.168.0.1 / 192.168.10.1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="920" y="240" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="svcA" value="services-s1&#10;(NetBox, webapp)&#10;10.10.0.20" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="140" y="360" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="obsA" value="observability-s1&#10;(Elastic + Kibana + Logstash)&#10;10.10.0.30" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="400" y="360" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="bastB" value="bastion-s2&#10;192.168.10.10&#10;SSH MFA · WAN:2222" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="920" y="360" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="svcB" value="services-s2&#10;192.168.10.20" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="360" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="vpn" value="Tunnel OpenVPN&#10;UDP/1194 · AES-256-GCM&#10;172.16.0.0/30" style="shape=note;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="720" y="240" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="eWAN-A" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="internet" target="pfsA">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eWAN-B" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="internet" target="pfsB">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eVPN" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=3;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="pfsA" target="pfsB">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eLAN-A-svc" style="endArrow=classic;html=1;" edge="1" parent="1" source="pfsA" target="svcA">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eLAN-A-obs" style="endArrow=classic;html=1;" edge="1" parent="1" source="pfsA" target="obsA">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eLAN-B-bast" style="endArrow=classic;html=1;" edge="1" parent="1" source="pfsB" target="bastB">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eLAN-B-svc" style="endArrow=classic;html=1;" edge="1" parent="1" source="pfsB" target="svcB">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="Légende&#10;▸ pfSense = firewall + VPN&#10;▸ bastion = porte SSH unique (MFA)&#10;▸ NetBox = source de vérité IPAM&#10;▸ ELK = observabilité centralisée" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="80" y="740" width="520" height="120" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

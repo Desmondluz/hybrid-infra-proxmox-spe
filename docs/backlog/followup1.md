@@ -1,7 +1,7 @@
 # CIA — GR46 — Résumé Follow-up 1
-**Date :** 11 mars 2026  
-**Intervenant·e :** Silya  
-**Groupe :** GR46  
+**Date :** 11 mars 2026
+**Intervenant·e :** Silya
+**Groupe :** GR46
 **Projet :** Deployment & Securing of a Hybrid Infrastructure with Proxmox
 
 ---
