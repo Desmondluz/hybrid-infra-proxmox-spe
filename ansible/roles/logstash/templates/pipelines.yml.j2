@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+- pipeline.id: main
+  path.config: "/etc/logstash/conf.d/*.conf"
+  queue.type: persisted

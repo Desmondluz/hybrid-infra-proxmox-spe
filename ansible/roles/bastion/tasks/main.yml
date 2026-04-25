@@ -1,0 +1,83 @@
+---
+# Role: bastion — durcit l'hôte Site B pour servir de bastion SSH unique.
+# Couvre : sec_bastion, sec_access, network_spec2, log_centralisation.
+
+- name: "[bastion] Installer les paquets nécessaires"
+  ansible.builtin.apt:
+    name:
+      - openssh-server
+      - fail2ban
+      - libpam-google-authenticator
+      - auditd
+      - rsyslog
+    state: present
+    update_cache: yes
+
+- name: "[bastion] Port SSH personnalisé + hardening supplémentaire"
+  ansible.builtin.template:
+    src: sshd_config_bastion.j2
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: "0600"
+    validate: "/usr/sbin/sshd -t -f %s"
+  notify: restart sshd
+
+- name: "[bastion] PAM — exiger SSH key + TOTP (2FA)"
+  ansible.builtin.template:
+    src: pam_sshd.j2
+    dest: /etc/pam.d/sshd
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "[bastion] Message d'accueil (banner)"
+  ansible.builtin.copy:
+    dest: /etc/issue.net
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      ###############################################################
+      #  RESTRICTED ACCESS — Hybrid Infra Bastion (Site B)          #
+      #  All connections are logged and monitored.                  #
+      #  Unauthorized access is prohibited.                         #
+      ###############################################################
+
+- name: "[bastion] fail2ban jail agressive pour SSH bastion"
+  ansible.builtin.template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.d/bastion.local
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart fail2ban
+
+- name: "[bastion] Script de bootstrap TOTP pour chaque user"
+  ansible.builtin.template:
+    src: setup-mfa.sh.j2
+    dest: /usr/local/bin/setup-mfa
+    mode: "0755"
+
+- name: "[bastion] Auditd — règles spécifiques bastion"
+  ansible.builtin.copy:
+    dest: /etc/audit/rules.d/95-bastion.rules
+    owner: root
+    group: root
+    mode: "0640"
+    content: |
+      # Trace toutes les commandes exécutées par les users (pour forensic)
+      -a exit,always -F arch=b64 -F euid>=1000 -F euid!=65534 -S execve -k user_cmd
+      -a exit,always -F arch=b32 -F euid>=1000 -F euid!=65534 -S execve -k user_cmd
+      -w /var/log/ -p wa -k log_tamper
+      -w /etc/ssh/ -p wa -k ssh_config
+  notify: restart auditd
+
+- name: "[bastion] Forward syslog vers Elastic (via VPN)"
+  ansible.builtin.template:
+    src: rsyslog-forward.conf.j2
+    dest: /etc/rsyslog.d/50-forward-elastic.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart rsyslog

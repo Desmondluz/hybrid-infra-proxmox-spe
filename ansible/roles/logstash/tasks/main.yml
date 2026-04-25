@@ -1,0 +1,69 @@
+---
+# Role: logstash — pipelines d'ingestion pour pfSense, SSH/auth, NetBox, OpenVPN.
+# Couvre : log_centralisation, log_observability.
+
+- name: "[logstash] Installer Logstash"
+  ansible.builtin.apt:
+    name: logstash
+    state: present
+    update_cache: yes
+
+- name: "[logstash] logstash.yml principal"
+  ansible.builtin.template:
+    src: logstash.yml.j2
+    dest: /etc/logstash/logstash.yml
+    owner: root
+    group: logstash
+    mode: "0660"
+  notify: restart logstash
+
+- name: "[logstash] jvm.options — heap"
+  ansible.builtin.copy:
+    dest: /etc/logstash/jvm.options.d/heap.options
+    owner: root
+    group: logstash
+    mode: "0660"
+    content: |
+      -Xms{{ logstash_heap | default('1g') }}
+      -Xmx{{ logstash_heap | default('1g') }}
+  notify: restart logstash
+
+- name: "[logstash] pipelines.yml"
+  ansible.builtin.template:
+    src: pipelines.yml.j2
+    dest: /etc/logstash/pipelines.yml
+    owner: root
+    group: logstash
+    mode: "0660"
+  notify: restart logstash
+
+- name: "[logstash] Créer répertoire des pipelines"
+  ansible.builtin.file:
+    path: /etc/logstash/conf.d
+    state: directory
+    owner: root
+    group: logstash
+    mode: "0750"
+
+- name: "[logstash] Déployer les pipelines CIA"
+  ansible.builtin.copy:
+    src: "pipelines/{{ item }}"
+    dest: "/etc/logstash/conf.d/{{ item }}"
+    owner: root
+    group: logstash
+    mode: "0640"
+  loop:
+    - 10-beats-input.conf
+    - 20-syslog-input.conf
+    - 30-filter-pfsense.conf
+    - 31-filter-ssh.conf
+    - 32-filter-openvpn.conf
+    - 33-filter-netbox.conf
+    - 90-output-elasticsearch.conf
+  notify: restart logstash
+
+- name: "[logstash] Démarrer au boot et maintenant"
+  ansible.builtin.service:
+    name: logstash
+    state: started
+    enabled: true

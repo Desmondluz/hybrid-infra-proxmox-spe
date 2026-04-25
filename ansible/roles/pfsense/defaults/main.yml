@@ -1,0 +1,17 @@
+---
+# Règles par défaut poussées sur pfSense.
+# Structuré en `server-side` (Site A) et `client-side` (Site B) pour coller
+# à la sémantique du VPN.
+
+pfsense_rules:
+  server-side:
+    - { type: pass,  interface: lan,      ipprotocol: inet, protocol: tcp/udp, source: "10.10.0.0/24",  destination: "any",          descr: "LAN → tout (via VPN seulement)" }
+    - { type: pass,  interface: lan,      ipprotocol: inet, protocol: any,     source: "10.10.10.0/24", destination: "10.10.0.0/24", descr: "ADMIN → LAN" }
+    - { type: block, interface: lan,      ipprotocol: inet, protocol: any,     source: "any",           destination: "10.10.10.0/24", descr: "Default deny vers ADMIN" }
+    - { type: pass,  interface: openvpn,  ipprotocol: inet, protocol: any,     source: "any",           destination: "any",           descr: "Autorise site-to-site" }
+
+  client-side:
+    - { type: pass,  interface: wan,      ipprotocol: inet, protocol: tcp, source: "any",           destination: "192.168.0.10", destination_port: "{{ bastion_wan_port }}", descr: "Internet → Bastion (DNAT)" }
+    - { type: block, interface: wan,      ipprotocol: inet, protocol: any, source: "any",           destination: "any",          descr: "Default deny WAN" }
+    - { type: pass,  interface: lan,      ipprotocol: inet, protocol: any, source: "192.168.0.0/24", destination: "192.168.10.0/24", descr: "LAN → SERVICES (limité)" }
+    - { type: pass,  interface: openvpn,  ipprotocol: inet, protocol: any, source: "any",            destination: "any",             descr: "Autorise site-to-site" }

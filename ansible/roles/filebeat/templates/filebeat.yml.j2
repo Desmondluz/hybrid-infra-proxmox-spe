@@ -1,0 +1,37 @@
+# {{ ansible_managed }}
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: true
+  reload.period: 30s
+
+filebeat.inputs:
+  - type: filestream
+    id: journald-syslog
+    enabled: true
+    paths:
+      - /var/log/syslog
+      - /var/log/auth.log
+    fields:
+      site: "site-{{ site_id | default('unknown') }}"
+      host_role: "{{ group_names | join(',') }}"
+    fields_under_root: false
+
+processors:
+  - add_host_metadata: ~
+  - add_cloud_metadata: ~
+  - add_fields:
+      target: event
+      fields:
+        dataset: system.generic
+
+output.logstash:
+  hosts: ["{{ logstash_target | default('10.10.0.30:5044') }}"]
+  loadbalance: false
+
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0640

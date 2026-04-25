@@ -1,0 +1,14 @@
+# {{ ansible_managed }}
+node.name: {{ inventory_hostname }}
+path.data: /var/lib/logstash
+path.logs: /var/log/logstash
+api.http.host: 127.0.0.1
+api.http.port: 9600
+pipeline.workers: 2
+pipeline.batch.size: 125
+queue.type: persisted
+queue.max_bytes: 1gb
+xpack.monitoring.enabled: true
+xpack.monitoring.elasticsearch.hosts: ["http://{{ elastic_host | default('127.0.0.1') }}:9200"]
+xpack.monitoring.elasticsearch.username: "elastic"
+xpack.monitoring.elasticsearch.password: "{{ elastic_admin_password }}"

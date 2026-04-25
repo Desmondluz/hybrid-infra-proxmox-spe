@@ -1,0 +1,11 @@
+---
+- name: restart netbox
+  community.docker.docker_compose_v2:
+    project_src: /opt/netbox
+    state: present
+    restarted: true
+
+- name: reload caddy
+  ansible.builtin.service:
+    name: caddy
+    state: reloaded

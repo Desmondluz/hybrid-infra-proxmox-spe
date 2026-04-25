@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CIA · Portail interne</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+    <h1>CIA — Portail interne</h1>
+    <p class="sub">Site A · {{ inventory_hostname }} · {{ ansible_date_time.iso8601 }}</p>
+</header>
+<main>
+    <section>
+        <h2>Services accessibles</h2>
+        <ul>
+            <li><a href="https://netbox.s1.lan">NetBox</a> — source de vérité IPAM</li>
+            <li><a href="https://kibana.s1.lan">Kibana</a> — observabilité des logs</li>
+            <li>SSH bastion Site B : <code>ssh -p 2222 admin@bastion.s2.lan</code></li>
+        </ul>
+    </section>
+    <section>
+        <h2>Règles d'accès</h2>
+        <p>Ce portail est accessible uniquement depuis les LAN Site A et Site B via le tunnel VPN.
+        Toute autre tentative est refusée par nginx.</p>
+    </section>
+    <section id="status">
+        <h2>Statut</h2>
+        <p id="statusLine">Chargement…</p>
+    </section>
+</main>
+<footer>
+    <p>GR46 · Epitech 2026 · Déployé automatiquement via Ansible</p>
+</footer>
+<script src="/script.js"></script>
+</body>
+</html>

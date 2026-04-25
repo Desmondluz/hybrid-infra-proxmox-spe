@@ -1,0 +1,7 @@
+---
+# Playbook master — applique TOUT à TOUS les sites.
+# Utile pour un rebuild complet ou pour valider l'idempotence globale.
+
+- import_playbook: siteA.yml
+- import_playbook: siteB.yml
+- import_playbook: elastic.yml

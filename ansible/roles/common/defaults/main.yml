@@ -1,0 +1,4 @@
+---
+# Les vrais defaults sont dans group_vars/all.yml.
+# Ce fichier existe pour satisfaire la convention Ansible et permettre
+# des overrides locaux si on extrait ce rôle dans un autre projet.

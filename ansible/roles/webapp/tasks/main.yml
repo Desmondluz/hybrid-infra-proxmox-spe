@@ -1,0 +1,64 @@
+---
+# Role: webapp — site interne du Site A, accessible uniquement depuis le LAN.
+# Couvre : infra_services_internes, network_segmentation.
+
+- name: "[webapp] Installer nginx"
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: yes
+
+- name: "[webapp] Désactiver site default"
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: reload nginx
+
+- name: "[webapp] Créer racine du site"
+  ansible.builtin.file:
+    path: /var/www/cia-webapp
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: "[webapp] Déployer index.html"
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: /var/www/cia-webapp/index.html
+    owner: www-data
+    group: www-data
+    mode: "0644"
+
+- name: "[webapp] Déployer ressources statiques"
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/var/www/cia-webapp/{{ item }}"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+  loop:
+    - style.css
+    - script.js
+
+- name: "[webapp] vhost nginx (LAN-only)"
+  ansible.builtin.template:
+    src: nginx-webapp.conf.j2
+    dest: /etc/nginx/sites-available/cia-webapp.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: reload nginx
+
+- name: "[webapp] Activer le vhost"
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/cia-webapp.conf
+    dest: /etc/nginx/sites-enabled/cia-webapp.conf
+    state: link
+  notify: reload nginx
+
+- name: "[webapp] Démarrer nginx"
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

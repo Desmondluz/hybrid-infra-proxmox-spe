@@ -1,0 +1,55 @@
+---
+# Role: filebeat — agent d'expédition des logs vers Logstash.
+# Déployé sur toutes les VM Linux CIA.
+# Couvre : log_centralisation, log_observability.
+
+- name: "[filebeat] Ajouter la clé GPG Elastic"
+  ansible.builtin.apt_key:
+    url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    state: present
+
+- name: "[filebeat] Ajouter le repo Elastic 8.x"
+  ansible.builtin.apt_repository:
+    repo: "deb https://artifacts.elastic.co/packages/8.x/apt stable main"
+    state: present
+    filename: elastic-8.x
+
+- name: "[filebeat] Installer filebeat"
+  ansible.builtin.apt:
+    name: filebeat
+    state: present
+    update_cache: yes
+
+- name: "[filebeat] Déployer filebeat.yml"
+  ansible.builtin.template:
+    src: filebeat.yml.j2
+    dest: /etc/filebeat/filebeat.yml
+    owner: root
+    group: root
+    mode: "0600"
+  notify: restart filebeat
+
+- name: "[filebeat] Activer modules system + auditd"
+  ansible.builtin.command: "filebeat modules enable {{ item }}"
+  loop:
+    - system
+    - auditd
+  register: fb_modules
+  changed_when: "'Enabled' in fb_modules.stdout"
+  failed_when: fb_modules.rc != 0 and 'already enabled' not in fb_modules.stderr
+  notify: restart filebeat
+
+- name: "[filebeat] Activer les inputs Docker si présent"
+  ansible.builtin.command: "filebeat modules enable docker"
+  when: "'netbox' in group_names or 'webapp' in group_names"
+  register: fb_docker
+  changed_when: "'Enabled' in fb_docker.stdout"
+  failed_when: fb_docker.rc != 0 and 'already enabled' not in fb_docker.stderr
+  notify: restart filebeat
+  ignore_errors: true
+
+- name: "[filebeat] Démarrer au boot et maintenant"
+  ansible.builtin.service:
+    name: filebeat
+    state: started
+    enabled: true

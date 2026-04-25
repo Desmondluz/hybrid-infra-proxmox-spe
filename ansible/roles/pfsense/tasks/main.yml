@@ -1,0 +1,118 @@
+---
+# Role: pfsense — pousse les règles de base via l'API pfSense-V2.
+# Couvre : network_firewall, sec_access, incident_killswitch.
+# Prérequis : le paquet pfSense-pkg-API (Jaredhendrickson13) est installé
+# et un token admin existe dans pfsense_api_token (chargé depuis SOPS).
+
+- name: "[pfsense] Charger le token API depuis SOPS"
+  community.sops.load_vars:
+    file: "{{ playbook_dir }}/../../secrets/pfsense.enc.yml"
+  delegate_to: localhost
+  run_once: true
+
+- name: "[pfsense] Interfaces — s'assurer qu'elles sont up"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}/api/v2/interface"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ pfsense_api_token }}"
+    validate_certs: false
+  register: pf_interfaces
+
+- name: "[pfsense] Alias — KILLSWITCH_ACTIVE (piloté par le playbook killswitch)"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}/api/v2/firewall/alias"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ pfsense_api_token }}"
+    body_format: json
+    body:
+      name: "KILLSWITCH_ACTIVE"
+      type: "host"
+      address: "0"
+      descr: "Switch 0/1 activé par ansible playbooks/killswitch.yml"
+    validate_certs: false
+    status_code: [200, 201, 409]
+
+- name: "[pfsense] Règle floatante kill switch (placée en tête)"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}/api/v2/firewall/rule"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ pfsense_api_token }}"
+    body_format: json
+    body:
+      type: "block"
+      interface: "floating"
+      ipprotocol: "inet"
+      protocol: "any"
+      source: "any"
+      destination: "any"
+      descr: "KILL SWITCH — bloque tout trafic traversant si alias=1"
+      floating: true
+      quick: true
+      direction: "any"
+      disabled: false
+      # condition d'activation : l'alias n'est utilisé que quand la règle
+      # est enable ; la bascule se fait via l'alias/état disabled depuis le playbook
+    validate_certs: false
+    status_code: [200, 201, 409]
+
+- name: "[pfsense] Règles fondamentales par interface"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}/api/v2/firewall/rule"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ pfsense_api_token }}"
+    body_format: json
+    body: "{{ item }}"
+    validate_certs: false
+    status_code: [200, 201, 409]
+  loop: "{{ pfsense_rules[pfsense_role] }}"
+  loop_control:
+    label: "{{ item.descr }}"
+
+- name: "[pfsense] DNS Resolver (unbound) — zones + forwarders"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}/api/v2/services/dns_resolver"
+    method: PATCH
+    headers:
+      Authorization: "Bearer {{ pfsense_api_token }}"
+    body_format: json
+    body:
+      enable: true
+      port: 53
+      custom_options: |
+        server:
+          local-zone: "{{ dns_zone }}." static
+        forward-zone:
+          name: "{{ 's2.lan' if site_id == 1 else 's1.lan' }}."
+          forward-addr: {{ dns_forward_to_siteB if site_id == 1 else dns_forward_to_siteA }}@53
+    validate_certs: false
+    status_code: [200, 204]
+
+- name: "[pfsense] Appliquer la config"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}/api/v2/firewall/apply"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ pfsense_api_token }}"
+    validate_certs: false
+    status_code: [200, 204]
+
+- name: "[pfsense] Export XML versionné (backup déclaratif)"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}/api/v2/system/config"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ pfsense_api_token }}"
+    validate_certs: false
+    return_content: true
+  register: pf_config
+
+- name: "[pfsense] Écrire l'export XML dans configs/pfsense/"
+  ansible.builtin.copy:
+    content: "{{ pf_config.content }}"
+    dest: "{{ playbook_dir }}/../../configs/pfsense/{{ site_name }}-config.xml"
+    mode: "0640"
+  delegate_to: localhost

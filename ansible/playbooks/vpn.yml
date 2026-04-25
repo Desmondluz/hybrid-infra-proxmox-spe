@@ -1,8 +1,33 @@
 ---
-- name: VPN placeholder playbook
-  hosts: localhost
+# Playbook dédié à la mise en place et au dépannage du tunnel VPN site-à-site.
+# À jouer après que les deux pfSense soient up.
+
+- name: "VPN — OpenVPN serveur sur Site A"
+  hosts: siteA:&pfsense
   gather_facts: false
+  roles:
+    - role: openvpn
+      vars:
+        openvpn_mode: "server"
+
+- name: "VPN — OpenVPN client sur Site B"
+  hosts: siteB:&pfsense
+  gather_facts: false
+  roles:
+    - role: openvpn
+      vars:
+        openvpn_mode: "client"
+
+- name: "VPN — Vérification de la connectivité inter-sites"
+  hosts: siteA:&services
+  become: false
   tasks:
-    - name: Show VPN placeholder message
+    - name: Ping vers la pfSense Site B via le tunnel
+      ansible.builtin.command: "ping -c 3 -W 2 {{ hostvars['pfsense-s2'].pfsense_vpn_ip }}"
+      changed_when: false
+      register: ping_result
+      failed_when: ping_result.rc != 0
+
+    - name: Afficher le résultat du ping
       ansible.builtin.debug:
-        msg: "Placeholder playbook for VPN setup"
+        var: ping_result.stdout_lines

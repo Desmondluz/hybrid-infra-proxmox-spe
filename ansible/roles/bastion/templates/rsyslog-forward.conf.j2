@@ -1,0 +1,12 @@
+# Forward des logs bastion vers Elastic (via Logstash) au travers du VPN.
+# Tout passe dans le tunnel chiffré, jamais en clair sur Internet.
+
+*.* action(
+  type="omfwd"
+  target="{{ elastic_host }}"
+  port="{{ logstash_beats_port | default(5044) }}"
+  protocol="tcp"
+  action.resumeRetryCount="100"
+  queue.type="linkedList"
+  queue.size="10000"
+)

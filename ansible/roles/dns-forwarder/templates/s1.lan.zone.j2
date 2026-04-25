@@ -1,0 +1,13 @@
+# {{ ansible_managed }}
+{% if site_id | default(1) | int == 1 %}
+# Zone locale — autorité sur s1.lan pour Site A
+server:
+    local-zone: "s1.lan." static
+    local-data: "pfsense.s1.lan. IN A 10.10.0.1"
+    local-data: "services.s1.lan. IN A 10.10.0.20"
+    local-data: "netbox.s1.lan. IN A 10.10.0.20"
+    local-data: "webapp.s1.lan. IN A 10.10.0.20"
+    local-data: "elastic.s1.lan. IN A 10.10.0.30"
+    local-data: "kibana.s1.lan. IN A 10.10.0.30"
+    local-data: "logstash.s1.lan. IN A 10.10.0.30"
+{% endif %}

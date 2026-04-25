@@ -1,0 +1,72 @@
+---
+# Role: kibana — UI de consultation des logs, branché sur Elasticsearch local.
+# Couvre : log_observability.
+
+- name: "[kibana] Installer Kibana"
+  ansible.builtin.apt:
+    name: kibana
+    state: present
+    update_cache: yes
+
+- name: "[kibana] Configurer kibana.yml"
+  ansible.builtin.template:
+    src: kibana.yml.j2
+    dest: /etc/kibana/kibana.yml
+    owner: root
+    group: kibana
+    mode: "0660"
+  notify: restart kibana
+
+- name: "[kibana] Démarrer au boot et maintenant"
+  ansible.builtin.service:
+    name: kibana
+    state: started
+    enabled: true
+
+- name: "[kibana] Attendre que l'UI réponde"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:5601/api/status"
+    user: elastic
+    password: "{{ elastic_admin_password }}"
+    force_basic_auth: true
+    status_code: 200
+  register: kibana_ready
+  until: kibana_ready.status == 200
+  retries: 30
+  delay: 10
+
+- name: "[kibana] Importer les dashboards CIA"
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/tmp/{{ item | basename }}"
+    mode: "0644"
+  loop:
+    - dashboards/cia-ssh.ndjson
+    - dashboards/cia-pfsense.ndjson
+    - dashboards/cia-netbox.ndjson
+    - dashboards/cia-overview.ndjson
+  ignore_errors: true
+  tags: dashboards
+
+- name: "[kibana] Charger les saved objects"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:5601/api/saved_objects/_import?overwrite=true"
+    method: POST
+    user: elastic
+    password: "{{ elastic_admin_password }}"
+    force_basic_auth: true
+    headers:
+      kbn-xsrf: "true"
+    body_format: form-multipart
+    body:
+      file:
+        filename: "{{ item | basename }}"
+        content: "{{ lookup('file', 'dashboards/' + (item | basename)) }}"
+    status_code: [200, 201]
+  loop:
+    - cia-ssh.ndjson
+    - cia-pfsense.ndjson
+    - cia-netbox.ndjson
+    - cia-overview.ndjson
+  ignore_errors: true
+  tags: dashboards

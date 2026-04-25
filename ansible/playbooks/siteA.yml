@@ -1,8 +1,51 @@
 ---
-- name: Site A placeholder playbook
-  hosts: localhost
+# Playbook d'orchestration Site A (on-prem).
+# Applique : common → pfSense config → OpenVPN server → DNS forwarder →
+#            NetBox → Webapp → Elasticsearch stack → Filebeat partout.
+
+- name: "[Site A] Durcissement commun sur toutes les VMs Linux"
+  hosts: siteA:&linux
+  become: true
+  roles:
+    - role: common
+    - role: filebeat
+
+- name: "[Site A] Configuration pfSense"
+  hosts: siteA:&pfsense
   gather_facts: false
-  tasks:
-    - name: Show Site A placeholder message
-      ansible.builtin.debug:
-        msg: "Placeholder playbook for Site A configuration"
+  roles:
+    - role: pfsense
+      vars:
+        pfsense_role: "server-side"
+
+- name: "[Site A] OpenVPN server"
+  hosts: siteA:&pfsense
+  gather_facts: false
+  roles:
+    - role: openvpn
+      vars:
+        openvpn_mode: "server"
+
+- name: "[Site A] DNS forwarder (unbound)"
+  hosts: siteA:&pfsense
+  gather_facts: false
+  roles:
+    - role: dns-forwarder
+      vars:
+        dns_peer_ip: "{{ dns_forward_to_siteB }}"
+        dns_peer_zone: "s2.lan"
+
+- name: "[Site A] Services — NetBox + Webapp interne"
+  hosts: siteA:&services
+  become: true
+  roles:
+    - role: netbox
+    - role: webapp
+
+- name: "[Site A] Observabilité — Elastic / Kibana / Logstash"
+  hosts: siteA:&observability
+  become: true
+  roles:
+    - role: elasticsearch
+    - role: kibana
+    - role: logstash

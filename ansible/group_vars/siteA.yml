@@ -1,0 +1,32 @@
+---
+# Variables spécifiques Site A (on-prem)
+
+site_id: 1
+site_name: "siteA"
+site_description: "Site A — on-premise"
+
+# Réseau
+lan_cidr: "10.10.0.0/24"
+admin_cidr: "10.10.10.0/24"
+
+pfsense_lan_ip: "10.10.0.1"
+pfsense_admin_ip: "10.10.10.1"
+pfsense_vpn_ip: "172.16.0.1"
+
+# Rôle VPN : site A = serveur
+vpn_role: "server"
+
+# Services critiques hébergés
+netbox_ip: "10.10.10.20"
+webapp_ip: "10.10.10.20"
+dns_forwarder_ip: "10.10.10.30"
+elastic_ip: "10.10.10.40"
+kibana_ip: "10.10.10.40"
+
+# Site web interne
+webapp_hostname: "web.s1.lan"
+webapp_port: 8080
+
+# DNS interne
+dns_zone: "s1.lan"
+dns_forward_to_siteB: "192.168.0.30"

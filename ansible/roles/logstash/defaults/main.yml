@@ -1,0 +1,3 @@
+---
+logstash_heap: 1g
+elastic_host: 127.0.0.1

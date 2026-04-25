@@ -1,0 +1,14 @@
+# Managed by Ansible — role: common
+
+[DEFAULT]
+bantime  = {{ fail2ban_bantime }}
+findtime = {{ fail2ban_findtime }}
+maxretry = {{ fail2ban_maxretry }}
+backend  = systemd
+destemail = root@localhost
+action   = %(action_)s
+
+[sshd]
+enabled  = true
+port     = ssh
+filter   = sshd

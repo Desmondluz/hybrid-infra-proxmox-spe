@@ -1,0 +1,31 @@
+---
+# Variables spécifiques Site B (remote)
+
+site_id: 2
+site_name: "siteB"
+site_description: "Site B — remote / Internet-facing"
+
+# Réseau
+lan_cidr: "192.168.0.0/24"
+services_cidr: "192.168.10.0/24"
+
+pfsense_lan_ip: "192.168.0.1"
+pfsense_services_ip: "192.168.10.1"
+pfsense_vpn_ip: "172.16.0.2"
+
+# Rôle VPN : site B = client
+vpn_role: "client"
+vpn_remote_endpoint: "pfsense-s1.public.example.com"  # à remplacer par IP publique ou FQDN réel
+vpn_remote_port: 1194
+
+# Bastion
+bastion_ip: "192.168.0.10"
+bastion_wan_port: 2222
+bastion_mfa_enabled: true
+
+# Observabilité locale (forwarder)
+elastic_forwarder_ip: "192.168.10.20"
+
+# DNS
+dns_zone: "s2.lan"
+dns_forward_to_siteA: "10.10.10.30"

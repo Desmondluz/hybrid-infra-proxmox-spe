@@ -1,0 +1,9 @@
+# {{ ansible_managed }}
+{% if site_id | default(1) | int == 2 %}
+# Zone locale — autorité sur s2.lan pour Site B
+server:
+    local-zone: "s2.lan." static
+    local-data: "pfsense.s2.lan. IN A 192.168.0.1"
+    local-data: "bastion.s2.lan. IN A 192.168.10.10"
+    local-data: "services.s2.lan. IN A 192.168.10.20"
+{% endif %}

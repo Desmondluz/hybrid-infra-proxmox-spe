@@ -1,0 +1,6 @@
+---
+elastic_cluster_name: cia-elastic
+elastic_bind_host: 0.0.0.0
+elastic_heap: 2g
+elastic_retention_days: 30
+# elastic_admin_password: défini via SOPS dans group_vars/all/secrets.sops.yml

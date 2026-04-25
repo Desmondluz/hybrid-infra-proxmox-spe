@@ -1,0 +1,25 @@
+# {{ ansible_managed }}
+# Kibana — CIA log_observability
+server.port: 5601
+server.host: "0.0.0.0"
+server.name: "{{ inventory_hostname }}"
+server.publicBaseUrl: "https://kibana.s1.lan"
+
+elasticsearch.hosts: ["http://{{ elastic_host | default('127.0.0.1') }}:9200"]
+elasticsearch.username: "elastic"
+elasticsearch.password: "{{ elastic_admin_password }}"
+
+# Logs
+logging:
+  appenders:
+    file:
+      type: file
+      fileName: /var/log/kibana/kibana.log
+      layout:
+        type: json
+  root:
+    level: info
+    appenders: [file]
+
+xpack.reporting.enabled: true
+telemetry.enabled: false

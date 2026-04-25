@@ -1,0 +1,74 @@
+---
+# Variables communes à tous les sites.
+# Les secrets (mots de passe, tokens) sont dans group_vars/*.vault.yml (SOPS).
+
+# --- Domaine et DNS --------------------------------------------------------
+infra_domain: "cia.lan"
+timezone: "Europe/Paris"
+ntp_servers:
+  - 0.fr.pool.ntp.org
+  - 1.fr.pool.ntp.org
+
+# --- Utilisateurs admin ----------------------------------------------------
+admin_users:
+  - name: desmon
+    comment: "Desmon (GR46)"
+    groups: [sudo]
+    ssh_keys:
+      - "ssh-ed25519 AAAA...replaceme... desmon@laptop"
+  - name: ops
+    comment: "Compte automation"
+    groups: [sudo]
+    ssh_keys:
+      - "ssh-ed25519 AAAA...replaceme... ops@ci"
+
+# --- VPN -------------------------------------------------------------------
+vpn:
+  protocol: udp
+  port: 1194
+  cipher: AES-256-GCM
+  auth: SHA256
+  tls_version: "1.2"
+  tunnel_cidr: "172.16.0.0/30"
+  server_ip: "172.16.0.1"
+  client_ip: "172.16.0.2"
+
+# --- Monitoring / logs -----------------------------------------------------
+elastic_host: "10.10.10.40"
+elastic_port: 9200
+kibana_host: "10.10.10.40"
+kibana_port: 5601
+logstash_host: "10.10.10.40"
+logstash_beats_port: 5044
+
+# --- NetBox ---------------------------------------------------------------
+netbox_url: "https://netbox.s1.lan/"
+netbox_api: "https://netbox.s1.lan/api/"
+
+# --- Sécurité --------------------------------------------------------------
+fail2ban_bantime: 3600
+fail2ban_findtime: 600
+fail2ban_maxretry: 5
+
+ssh_allow_users: "desmon ops"
+ssh_permit_root_login: "no"
+ssh_password_auth: "no"
+ssh_kex_algorithms: "curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512"
+ssh_ciphers: "chacha20-poly1305@openssh.com,aes256-gcm@openssh.com"
+ssh_macs: "hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com"
+
+# --- Apt / updates ---------------------------------------------------------
+unattended_upgrades: true
+common_packages:
+  - curl
+  - wget
+  - vim
+  - htop
+  - jq
+  - rsync
+  - net-tools
+  - tcpdump
+  - python3-pip
+  - fail2ban
+  - ufw
+  - auditd

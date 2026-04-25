@@ -1,0 +1,28 @@
+# {{ ansible_managed }}
+# Elasticsearch single-node — CIA log_centralisation / log_observability
+cluster.name: {{ elastic_cluster_name | default('cia-elastic') }}
+node.name: {{ inventory_hostname }}
+
+path.data: /var/lib/elasticsearch
+path.logs: /var/log/elasticsearch
+
+network.host: {{ elastic_bind_host | default('0.0.0.0') }}
+http.port: 9200
+transport.port: 9300
+
+discovery.type: single-node
+
+# Sécurité — TLS HTTP désactivé car réseau admin isolé derrière pfSense + VPN.
+# Auth basic activée (elastic user + mot de passe SOPS).
+xpack.security.enabled: true
+xpack.security.http.ssl.enabled: false
+xpack.security.transport.ssl.enabled: false
+
+# Mémoire
+bootstrap.memory_lock: true
+
+# Licence basic par défaut
+xpack.license.self_generated.type: basic
+
+# Monitoring interne
+xpack.monitoring.collection.enabled: true

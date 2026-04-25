@@ -1,0 +1,36 @@
+# {{ ansible_managed }}
+# vhost LAN-only pour webapp interne CIA
+server {
+    listen 80 default_server;
+    server_name webapp.s1.lan;
+    root /var/www/cia-webapp;
+    index index.html;
+
+    # Whitelist : LAN A, tunnel VPN, LAN B (via VPN)
+    allow 10.10.0.0/24;
+    allow 10.10.10.0/24;
+    allow 172.16.0.0/30;
+    allow 192.168.0.0/24;
+    allow 192.168.10.0/24;
+    allow 127.0.0.1;
+    deny all;
+
+    # Headers de sécurité
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" always;
+
+    access_log /var/log/nginx/cia-webapp-access.log;
+    error_log  /var/log/nginx/cia-webapp-error.log warn;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location /healthz {
+        access_log off;
+        return 200 "ok\n";
+        add_header Content-Type text/plain;
+    }
+}

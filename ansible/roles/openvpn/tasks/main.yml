@@ -1,0 +1,119 @@
+---
+# Role: openvpn — pilote la config OpenVPN sur pfSense via l'API REST.
+# Couvre : network_vpn.
+# Mode 'server' → site A. Mode 'client' → site B.
+
+- name: "[openvpn] Déchiffrer le bundle de certificats depuis SOPS"
+  community.sops.load_vars:
+    file: "{{ playbook_dir }}/../../secrets/openvpn-ca.enc.yml"
+  delegate_to: localhost
+  run_once: true
+
+- name: "[openvpn] Pousser la CA sur pfSense"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}/api/v2/system/certificate_authority"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ pfsense_api_token }}"
+    body_format: json
+    body:
+      descr: "cia-vpn-ca"
+      crt: "{{ openvpn_ca_cert }}"
+    validate_certs: false
+    status_code: [200, 201, 409]
+
+- name: "[openvpn] Pousser le certificat serveur/client"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}/api/v2/system/certificate"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ pfsense_api_token }}"
+    body_format: json
+    body:
+      descr: "cia-vpn-{{ openvpn_mode }}"
+      crt: "{{ openvpn_local_cert }}"
+      prv: "{{ openvpn_local_key }}"
+    validate_certs: false
+    status_code: [200, 201, 409]
+
+- name: "[openvpn] Créer l'instance OpenVPN server (Site A)"
+  when: openvpn_mode == "server"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}/api/v2/services/openvpn/server"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ pfsense_api_token }}"
+    body_format: json
+    body:
+      mode: "p2p_tls"
+      protocol: "{{ vpn.protocol | upper }}4"
+      interface: "wan"
+      local_port: "{{ vpn.port }}"
+      description: "Site-to-site server Site A"
+      tunnel_network: "{{ vpn.tunnel_cidr }}"
+      remote_network: "192.168.0.0/24,192.168.10.0/24"
+      data_ciphers: "{{ vpn.cipher }}"
+      data_ciphers_fallback: "{{ vpn.cipher }}"
+      auth: "{{ vpn.auth }}"
+      caref: "cia-vpn-ca"
+      certref: "cia-vpn-server"
+      tls_type: "tls-crypt"
+      compression: "no"
+      disable: false
+    validate_certs: false
+    status_code: [200, 201, 409]
+
+- name: "[openvpn] Créer l'instance OpenVPN client (Site B)"
+  when: openvpn_mode == "client"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}/api/v2/services/openvpn/client"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ pfsense_api_token }}"
+    body_format: json
+    body:
+      mode: "p2p_tls"
+      protocol: "{{ vpn.protocol | upper }}4"
+      interface: "wan"
+      server_addr: "{{ vpn_remote_endpoint }}"
+      server_port: "{{ vpn_remote_port }}"
+      description: "Site-to-site client Site B"
+      tunnel_network: "{{ vpn.tunnel_cidr }}"
+      remote_network: "10.10.0.0/24,10.10.10.0/24"
+      data_ciphers: "{{ vpn.cipher }}"
+      data_ciphers_fallback: "{{ vpn.cipher }}"
+      auth: "{{ vpn.auth }}"
+      caref: "cia-vpn-ca"
+      certref: "cia-vpn-client"
+      tls_type: "tls-crypt"
+      compression: "no"
+      disable: false
+    validate_certs: false
+    status_code: [200, 201, 409]
+
+- name: "[openvpn] Ajouter les règles firewall sur l'interface OpenVPN"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}/api/v2/firewall/rule"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ pfsense_api_token }}"
+    body_format: json
+    body:
+      type: "pass"
+      interface: "openvpn"
+      ipprotocol: "inet"
+      protocol: "any"
+      source: "any"
+      destination: "any"
+      descr: "Allow VPN site-to-site traffic"
+    validate_certs: false
+    status_code: [200, 201, 409]
+
+- name: "[openvpn] Appliquer la config pfSense"
+  ansible.builtin.uri:
+    url: "https://{{ ansible_host }}/api/v2/firewall/apply"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ pfsense_api_token }}"
+    validate_certs: false
+    status_code: [200, 204]

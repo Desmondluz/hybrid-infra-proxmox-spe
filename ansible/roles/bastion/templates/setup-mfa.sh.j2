@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Bootstrap TOTP (Google Authenticator) pour l'utilisateur courant.
+# Doit être lancé UNE FOIS par chaque utilisateur, directement sur le bastion.
+set -euo pipefail
+
+if [[ -f "$HOME/.google_authenticator" ]]; then
+  echo "[setup-mfa] Un secret TOTP existe déjà pour $USER." >&2
+  echo "[setup-mfa] Supprime ~/.google_authenticator si tu veux régénérer." >&2
+  exit 1
+fi
+
+echo "[setup-mfa] Génération d'un secret TOTP pour $USER..."
+google-authenticator \
+  --time-based \
+  --disallow-reuse \
+  --force \
+  --rate-limit=3 \
+  --rate-time=30 \
+  --window-size=3 \
+  --secret="$HOME/.google_authenticator"
+
+chmod 400 "$HOME/.google_authenticator"
+
+echo ""
+echo "[setup-mfa] Scanne le QR code ci-dessus avec ton app TOTP (Aegis, Authy, etc.)."
+echo "[setup-mfa] Garde les scratch codes en lieu sûr."
+echo "[setup-mfa] À la prochaine connexion SSH, le bastion demandera :"
+echo "             1) ta clé publique SSH"
+echo "             2) le code TOTP à 6 chiffres"

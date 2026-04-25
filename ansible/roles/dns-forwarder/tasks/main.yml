@@ -1,0 +1,55 @@
+---
+# Role: dns-forwarder — unbound, résolveur interne + forward conditionnel vers l'autre site.
+# Couvre : network_segmentation (DNS séparé), infra_automation.
+
+- name: "[dns] Installer unbound"
+  ansible.builtin.apt:
+    name:
+      - unbound
+      - unbound-anchor
+    state: present
+    update_cache: yes
+
+- name: "[dns] Désactiver systemd-resolved stub listener"
+  ansible.builtin.copy:
+    dest: /etc/systemd/resolved.conf.d/99-disable-stub.conf
+    mode: "0644"
+    content: |
+      [Resolve]
+      DNSStubListener=no
+  notify: restart resolved
+
+- name: "[dns] Lien /etc/resolv.conf -> unbound"
+  ansible.builtin.file:
+    src: /run/systemd/resolve/resolv.conf
+    dest: /etc/resolv.conf
+    state: link
+    force: true
+
+- name: "[dns] Configurer unbound.conf.d/cia.conf"
+  ansible.builtin.template:
+    src: cia.conf.j2
+    dest: /etc/unbound/unbound.conf.d/cia.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "unbound-checkconf %s"
+  notify: restart unbound
+
+- name: "[dns] Déployer les zones d'autorité"
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/unbound/unbound.conf.d/zone-{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - s1.lan.zone
+    - s2.lan.zone
+  notify: restart unbound
+
+- name: "[dns] Démarrer au boot et maintenant"
+  ansible.builtin.service:
+    name: unbound
+    state: started
+    enabled: true

@@ -1,0 +1,132 @@
+---
+# Role: common — baseline hardening pour toutes les VMs Linux.
+# Couvre : sec_access (least privilege), repo_content, log_centralisation (via filebeat),
+# incident_recovery (auditd trace les actions).
+
+- name: "[common] Assurer la présence de aptitude (backend apt)"
+  ansible.builtin.apt:
+    name: aptitude
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: "[common] Mise à jour complète du système"
+  ansible.builtin.apt:
+    upgrade: safe
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: "[common] Installer les paquets communs"
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+
+- name: "[common] Activer unattended-upgrades"
+  when: unattended_upgrades | bool
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: present
+  notify: enable unattended upgrades
+
+- name: "[common] Timezone"
+  community.general.timezone:
+    name: "{{ timezone }}"
+
+- name: "[common] Hostname = nom d'inventaire"
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+
+- name: "[common] /etc/hosts — entrées locales"
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: "^127\\.0\\.1\\.1 "
+    line: "127.0.1.1 {{ inventory_hostname }}.{{ infra_domain }} {{ inventory_hostname }}"
+    state: present
+
+- name: "[common] NTP via systemd-timesyncd"
+  ansible.builtin.template:
+    src: timesyncd.conf.j2
+    dest: /etc/systemd/timesyncd.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart timesyncd
+
+- name: "[common] Créer les utilisateurs admin"
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    comment: "{{ item.comment | default('') }}"
+    groups: "{{ item.groups | join(',') }}"
+    shell: /bin/bash
+    state: present
+    append: true
+  loop: "{{ admin_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: "[common] Déployer les clés SSH des admins"
+  ansible.posix.authorized_key:
+    user: "{{ item.0.name }}"
+    key: "{{ item.1 }}"
+    state: present
+  loop: "{{ admin_users | subelements('ssh_keys') }}"
+  loop_control:
+    label: "{{ item.0.name }}"
+
+- name: "[common] Sudoers — groupe sudo sans mot de passe (clé SSH + MFA via bastion)"
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/90-wheel-nopasswd
+    owner: root
+    group: root
+    mode: "0440"
+    content: |
+      %sudo ALL=(ALL:ALL) NOPASSWD:ALL
+
+- name: "[common] Hardening SSH"
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: "0600"
+    validate: "/usr/sbin/sshd -t -f %s"
+  notify: restart sshd
+
+- name: "[common] fail2ban — config de base"
+  ansible.builtin.template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart fail2ban
+
+- name: "[common] auditd — actif et au démarrage"
+  ansible.builtin.service:
+    name: auditd
+    state: started
+    enabled: true
+
+- name: "[common] Baseline auditd rules"
+  ansible.builtin.copy:
+    dest: /etc/audit/rules.d/90-baseline.rules
+    owner: root
+    group: root
+    mode: "0640"
+    content: |
+      # Baseline — tracks command executions, identity changes, privileged ops
+      -w /etc/passwd -p wa -k identity
+      -w /etc/group -p wa -k identity
+      -w /etc/shadow -p wa -k identity
+      -w /etc/sudoers -p wa -k scope
+      -w /etc/ssh/sshd_config -p wa -k sshd
+      -a exit,always -F arch=b64 -S execve -k exec
+      -a exit,always -F arch=b32 -S execve -k exec
+  notify: restart auditd
+
+- name: "[common] Journald persistant"
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/journald.conf
+    regexp: "^#?Storage="
+    line: "Storage=persistent"
+  notify: restart journald

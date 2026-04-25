@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: logstash
+  author: GR46
+  description: Deploy Logstash with CIA pipelines (pfSense, SSH, OpenVPN, NetBox)
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy]
+dependencies:
+  - role: elasticsearch

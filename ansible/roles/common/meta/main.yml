@@ -1,0 +1,13 @@
+---
+galaxy_info:
+  author: GR46 — CIA
+  description: Baseline hardening for Linux VMs in the hybrid Proxmox infrastructure.
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+    - name: Debian
+      versions: [bookworm]
+  galaxy_tags: [hardening, baseline, infrastructure]
+dependencies: []

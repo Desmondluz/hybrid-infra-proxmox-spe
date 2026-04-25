@@ -1,0 +1,47 @@
+# {{ ansible_managed }}
+# unbound — résolveur CIA
+server:
+    verbosity: 1
+    interface: 0.0.0.0
+    interface: ::0
+    port: 53
+    do-ip4: yes
+    do-ip6: no
+    do-udp: yes
+    do-tcp: yes
+
+    access-control: 127.0.0.0/8 allow
+    access-control: 10.10.0.0/16 allow
+    access-control: 192.168.0.0/16 allow
+    access-control: 172.16.0.0/30 allow
+    access-control: 0.0.0.0/0 refuse
+
+    hide-identity: yes
+    hide-version: yes
+    harden-glue: yes
+    harden-dnssec-stripped: yes
+    use-caps-for-id: yes
+    qname-minimisation: yes
+
+    cache-min-ttl: 300
+    cache-max-ttl: 14400
+
+    log-queries: no
+    log-replies: no
+
+# Forward par défaut vers upstream publics (derrière pfSense)
+forward-zone:
+    name: "."
+    forward-addr: 1.1.1.1
+    forward-addr: 9.9.9.9
+
+# Forward conditionnel — chaque site interroge l'autre via le tunnel VPN
+{% if site_id | default(1) | int == 1 %}
+forward-zone:
+    name: "s2.lan."
+    forward-addr: {{ siteB_dns_ip | default('192.168.0.10') }}
+{% else %}
+forward-zone:
+    name: "s1.lan."
+    forward-addr: {{ siteA_dns_ip | default('10.10.0.10') }}
+{% endif %}

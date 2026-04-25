@@ -1,0 +1,53 @@
+---
+# Kill switch — active ou désactive la règle pfSense floatante qui bloque
+# tout le trafic traversant entre les zones et à travers le tunnel VPN,
+# tout en préservant l'accès admin local et la console Proxmox.
+#
+# Usage :
+#   ansible-playbook -i inventories/siteA.ini playbooks/killswitch.yml \
+#       -e killswitch_state=on
+#   ansible-playbook -i inventories/siteA.ini playbooks/killswitch.yml \
+#       -e killswitch_state=off
+#
+# À jouer en parallèle sur les deux sites pour un arrêt global :
+#   ansible-playbook -i inventories/siteA.ini -i inventories/siteB.ini \
+#       playbooks/killswitch.yml -e killswitch_state=on
+
+- name: "Kill switch — bascule la règle pfSense {{ killswitch_state | upper }}"
+  hosts: pfsense
+  gather_facts: false
+  vars:
+    killswitch_state: "off"   # override via -e killswitch_state=on
+  tasks:
+    - name: Vérifier la valeur de killswitch_state
+      ansible.builtin.assert:
+        that:
+          - killswitch_state in ['on', 'off']
+        fail_msg: "killswitch_state doit être 'on' ou 'off'"
+
+    - name: Basculer l'alias pfSense KILLSWITCH_ACTIVE via l'API
+      ansible.builtin.uri:
+        url: "https://{{ ansible_host }}/api/v2/firewall/alias"
+        method: PATCH
+        headers:
+          Authorization: "Bearer {{ pfsense_api_token }}"
+        body_format: json
+        body:
+          name: "KILLSWITCH_ACTIVE"
+          address: "{{ '1' if killswitch_state == 'on' else '0' }}"
+        validate_certs: false
+        status_code: [200, 204]
+      register: api_result
+
+    - name: Recharger les règles firewall
+      ansible.builtin.uri:
+        url: "https://{{ ansible_host }}/api/v2/firewall/apply"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ pfsense_api_token }}"
+        validate_certs: false
+        status_code: [200, 204]
+
+    - name: Confirmation
+      ansible.builtin.debug:
+        msg: "Kill switch {{ killswitch_state | upper }} appliqué sur {{ inventory_hostname }}."

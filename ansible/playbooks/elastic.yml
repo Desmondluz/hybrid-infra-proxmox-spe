@@ -1,8 +1,15 @@
 ---
-- name: Elasticsearch placeholder playbook
-  hosts: localhost
-  gather_facts: false
-  tasks:
-    - name: Show elastic placeholder message
-      ansible.builtin.debug:
-        msg: "Placeholder playbook for elastic deployment"
+- name: "Observabilité — Elastic stack (Site A)"
+  hosts: siteA:&observability
+  become: true
+  roles:
+    - role: common
+    - role: elasticsearch
+    - role: kibana
+    - role: logstash
+
+- name: "Observabilité — Filebeat / Metricbeat partout"
+  hosts: siteA:&linux:siteB:&linux
+  become: true
+  roles:
+    - role: filebeat
