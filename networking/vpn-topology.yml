@@ -1,3 +1,4 @@
+---
 # Topologie du VPN site-à-site OpenVPN
 # Aligné avec les exigences du SPE :
 # - Interconnexion sécurisée entre Site A (on-prem) et Site B (remote)

@@ -1,0 +1,162 @@
+<?xml version="1.0"?>
+<!--
+    pfSense reference config export — Site B (remote)
+    =================================================
+    Snapshot lisible de la configuration pfSense Site B. Régénéré par le rôle
+    ansible `pfsense`. Preuve d'audit pour network_firewall + sec_hardening.
+-->
+<pfsense>
+  <version>23.09</version>
+  <system>
+    <hostname>pfsense-s2</hostname>
+    <domain>s2.lan</domain>
+    <dnsserver>127.0.0.1</dnsserver>
+    <timezone>Europe/Paris</timezone>
+    <timeservers>fr.pool.ntp.org</timeservers>
+  </system>
+
+  <interfaces>
+    <wan>
+      <if>vtnet0</if>
+      <ipaddr>dhcp</ipaddr>
+      <enable/>
+    </wan>
+    <lan>
+      <if>vtnet1</if>
+      <ipaddr>192.168.0.1</ipaddr>
+      <subnet>24</subnet>
+      <enable/>
+    </lan>
+    <opt1>
+      <if>vtnet2</if>
+      <descr>SERVICES</descr>
+      <ipaddr>192.168.10.1</ipaddr>
+      <subnet>24</subnet>
+      <enable/>
+    </opt1>
+  </interfaces>
+
+  <aliases>
+    <alias>
+      <name>KILLSWITCH_ACTIVE</name>
+      <type>host</type>
+      <descr>Flag killswitch : bloque WAN si non vide</descr>
+      <address></address>
+    </alias>
+  </aliases>
+
+  <filter>
+    <!-- Floating : killswitch -->
+    <rule>
+      <type>block</type>
+      <floating>yes</floating>
+      <direction>out</direction>
+      <interface>wan</interface>
+      <source><any/></source>
+      <destination><any/></destination>
+      <source-alias>KILLSWITCH_ACTIVE</source-alias>
+      <descr>KILLSWITCH — bloque toute sortie WAN si alias non vide</descr>
+    </rule>
+
+    <!-- WAN : NAT bastion SSH vers 2222 -->
+    <rule>
+      <type>pass</type>
+      <interface>wan</interface>
+      <protocol>tcp</protocol>
+      <destination><network>wanip</network><port>2222</port></destination>
+      <descr>Bastion SSH entrant (port NAT 2222)</descr>
+    </rule>
+
+    <!-- LAN : usage bureautique -->
+    <rule>
+      <type>pass</type>
+      <interface>lan</interface>
+      <source><network>lan</network></source>
+      <destination><any/></destination>
+      <protocol>tcp</protocol>
+      <destination-port>80 443</destination-port>
+      <descr>LAN egress HTTP/HTTPS</descr>
+    </rule>
+    <rule>
+      <type>block</type>
+      <interface>lan</interface>
+      <source><network>lan</network></source>
+      <destination><network>opt1</network></destination>
+      <descr>LAN ne voit PAS SERVICES (segmentation)</descr>
+    </rule>
+
+    <!-- SERVICES -->
+    <rule>
+      <type>pass</type>
+      <interface>opt1</interface>
+      <source><network>opt1</network></source>
+      <destination><network>10.10.0.0/24</network></destination>
+      <descr>SERVICES -> Site A LAN (logs, NetBox, dashboards)</descr>
+    </rule>
+
+    <!-- VPN -->
+    <rule>
+      <type>pass</type>
+      <interface>openvpn</interface>
+      <source><network>10.10.0.0/24</network></source>
+      <destination><network>192.168.0.0/24</network></destination>
+      <descr>Site A LAN -> Site B LAN (via tunnel)</descr>
+    </rule>
+    <rule>
+      <type>pass</type>
+      <interface>openvpn</interface>
+      <source><network>10.10.10.0/24</network></source>
+      <destination><network>192.168.10.0/24</network></destination>
+      <descr>Site A ADMIN -> Site B SERVICES (via tunnel)</descr>
+    </rule>
+  </filter>
+
+  <!-- NAT : exposer bastion SSH en 2222 -->
+  <nat>
+    <rule>
+      <interface>wan</interface>
+      <protocol>tcp</protocol>
+      <local-port>22</local-port>
+      <target>192.168.10.10</target>
+      <destination><network>wanip</network><port>2222</port></destination>
+      <descr>NAT SSH bastion : WAN:2222 -> 192.168.10.10:22</descr>
+    </rule>
+  </nat>
+
+  <!-- OpenVPN client -->
+  <openvpn>
+    <openvpn-client>
+      <vpnid>1</vpnid>
+      <description>CIA VPN Client (Site B -> Site A)</description>
+      <mode>p2p_tls</mode>
+      <protocol>UDP4</protocol>
+      <interface>wan</interface>
+      <server_addr>vpn.siteA.example.com</server_addr>
+      <server_port>1194</server_port>
+      <tunnel_network>172.16.0.0/30</tunnel_network>
+      <remote_networks>10.10.0.0/24,10.10.10.0/24</remote_networks>
+      <data_ciphers>AES-256-GCM</data_ciphers>
+      <data_ciphers_fallback>AES-256-GCM</data_ciphers_fallback>
+      <digest>SHA256</digest>
+      <tls_type>crypt</tls_type>
+      <compression>none</compression>
+    </openvpn-client>
+  </openvpn>
+
+  <!-- Unbound DNS resolver -->
+  <unbound>
+    <enable/>
+    <active_interface>lan,opt1</active_interface>
+    <outgoing_interface>wan</outgoing_interface>
+    <system_domain_local_zone_type>transparent</system_domain_local_zone_type>
+    <forwarding>0</forwarding>
+  </unbound>
+
+  <!-- Syslog vers Logstash Site A via tunnel VPN -->
+  <syslog>
+    <enable/>
+    <remoteserver>10.10.0.30:5514</remoteserver>
+    <filter>1</filter>
+    <logfilesize>1048576</logfilesize>
+  </syslog>
+</pfsense>

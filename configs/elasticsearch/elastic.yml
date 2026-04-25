@@ -1,0 +1,30 @@
+---
+# ==========================================================================
+# elasticsearch.yml — référence de configuration
+# Déploiement réel : ansible/roles/elasticsearch/templates/elasticsearch.yml.j2
+# ==========================================================================
+cluster.name: cia-elastic
+node.name: observability-s1
+
+path.data: /var/lib/elasticsearch
+path.logs: /var/log/elasticsearch
+
+network.host: 0.0.0.0
+http.port: 9200
+transport.port: 9300
+
+discovery.type: single-node
+
+xpack.security.enabled: true
+xpack.security.http.ssl.enabled: false
+xpack.security.transport.ssl.enabled: false
+
+bootstrap.memory_lock: true
+
+xpack.license.self_generated.type: basic
+xpack.monitoring.collection.enabled: true
+
+# --- ILM policy cia-30d est créée par le handler Ansible (elasticsearch/tasks/main.yml)
+# Phases :
+#   hot   : pas d'action
+#   delete: après 30 jours, supprime l'index

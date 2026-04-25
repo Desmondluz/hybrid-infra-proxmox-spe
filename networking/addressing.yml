@@ -1,3 +1,4 @@
+---
 # Plan d’adressage complet de l’infrastructure hybride SPE
 # Ce fichier décrit précisément les sous-réseaux, les rôles de chaque zone,
 # les IP des composants critiques et la topologie du tunnel VPN.
