@@ -1,0 +1,23 @@
+# Gitleaks configuration — CIA GR46
+# Utilise les règles par défaut + allowlists spécifiques au projet.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Faux positifs connus pour CIA"
+paths = [
+    # SOPS files sont chiffrés → pas un risque même si "encrypted" apparaît
+    '''.*\.sops\.ya?ml$''',
+    # snapshots de doc où des exemples de clefs apparaissent
+    '''docs/runbooks/secrets\.md$''',
+    '''docs/runbooks/vpn\.md$''',
+    # Exemples de clefs publiques SSH uniquement (ssh-ed25519 ...)
+    '''.*\.tfvars\.example$''',
+]
+regexes = [
+    # Placeholders évidents
+    '''CHANGE_ME''',
+    '''<REPLACE_ME>''',
+    '''ssh-(ed25519|rsa) AAAA[0-9A-Za-z+/=]{10,}''',
+]

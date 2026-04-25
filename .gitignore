@@ -1,0 +1,86 @@
+# -------- Terraform --------
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+.terraform.lock.hcl
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# -------- Ansible --------
+*.retry
+.vault_pass
+.ansible/
+ansible.log
+roles/**/vendor/
+
+# -------- Python --------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+pip-log.txt
+
+# -------- Node (if any helper scripts) --------
+node_modules/
+npm-debug.log*
+
+# -------- Secrets (should never be committed) --------
+*.pem
+*.key
+*.crt
+!ca.crt.example
+*.pfx
+*.p12
+secrets/plaintext/
+*.unencrypted.*
+.env
+.env.*
+!.env.example
+
+# -------- IDE / Editors --------
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+# -------- OS --------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# -------- Build / dist --------
+dist/
+build/
+*.egg-info/
+
+# -------- Logs --------
+logs/
+*.log
+
+# -------- Molecule --------
+.molecule/
+
+# -------- Packer --------
+packer_cache/
+*.box
+
+# -------- pre-commit --------
+.pre-commit-trash/

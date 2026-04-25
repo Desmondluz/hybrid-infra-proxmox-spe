@@ -1,38 +1,76 @@
-name: Ansible CI
+name: ansible
 
 on:
   push:
-    branches: ["main", "develop"]
+    branches: [main, develop]
+    paths:
+      - "ansible/**"
+      - ".github/workflows/ansible.yml"
   pull_request:
-    branches: ["main", "develop"]
+    branches: [main, develop]
+    paths:
+      - "ansible/**"
+      - ".github/workflows/ansible.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ansible-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  ansible:
-    name: Validate Ansible
-    runs-on: ubuntu-latest
-
+  lint:
+    name: lint (ansible-lint + yamllint)
+    runs-on: ubuntu-22.04
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-
-      - name: Install Ansible
+          python-version: "3.11"
+          cache: pip
+      - name: install tools
         run: |
-          pip install --upgrade ansible ansible-lint
+          python -m pip install --upgrade pip
+          pip install "ansible-core==2.16.*" "ansible-lint==24.*" "yamllint==1.35.*"
+      - name: install collections
+        run: ansible-galaxy install -r ansible/requirements.yml
+      - name: yamllint
+        run: yamllint -c .yamllint.yml ansible/
+      - name: ansible-lint
+        working-directory: ansible
+        run: ansible-lint --force-color
 
-      - name: Ansible Lint
-        run: ansible-lint
-
-      - name: Syntax Check
-        run: ansible-playbook -i ansible/inventories/siteA.ini ansible/playbooks/siteA.yml --syntax-check
-
-      - name: Check for forbidden secrets
+  syntax:
+    name: syntax-check (${{ matrix.site }})
+    runs-on: ubuntu-22.04
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        site: [siteA, siteB]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: install tools
         run: |
-          if grep -R --exclude-dir=.github --exclude-dir=.git "BEGIN RSA PRIVATE KEY" -n .; then
-            echo "❌ Secret detected in repository"
-            exit 1
-          fi
+          python -m pip install --upgrade pip
+          pip install "ansible-core==2.16.*"
+          ansible-galaxy install -r ansible/requirements.yml
+      - name: syntax-check playbooks
+        working-directory: ansible
+        run: |
+          ansible-playbook \
+            -i inventories/${{ matrix.site }}.ini \
+            playbooks/${{ matrix.site }}.yml \
+            --syntax-check
+      - name: syntax-check vpn & killswitch
+        working-directory: ansible
+        run: |
+          for pb in vpn.yml killswitch.yml site.yml; do
+            ansible-playbook -i inventories/${{ matrix.site }}.ini "playbooks/${pb}" --syntax-check
+          done

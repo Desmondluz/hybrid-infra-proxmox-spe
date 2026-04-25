@@ -1,44 +1,111 @@
-name: Terraform CI
+name: terraform
 
 on:
   push:
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform.yml"
   pull_request:
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write   # for PR comments with plan
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  terraform:
-    name: Validate Terraform
-    runs-on: ubuntu-latest
+  fmt:
+    name: fmt
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+      - name: terraform fmt -check -recursive
+        run: terraform fmt -check -recursive
+
+  validate:
+    name: validate (${{ matrix.path }})
+    runs-on: ubuntu-22.04
+    needs: fmt
     strategy:
+      fail-fast: false
+      matrix:
+        path:
+          - terraform/modules/proxmox-vm
+          - terraform/modules/network
+          - terraform/siteA
+          - terraform/siteB
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+      - name: init (no backend)
+        run: terraform init -backend=false -input=false
+        working-directory: ${{ matrix.path }}
+      - name: validate
+        run: terraform validate -no-color
+        working-directory: ${{ matrix.path }}
+
+  tflint:
+    name: tflint
+    runs-on: ubuntu-22.04
+    needs: fmt
+    strategy:
+      fail-fast: false
       matrix:
         path:
           - terraform/siteA
           - terraform/siteB
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform Init
-        run: terraform init -input=false
+      - uses: actions/checkout@v4
+      - uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.50.3
+      - name: tflint --init
+        run: tflint --init
+        working-directory: ${{ matrix.path }}
+      - name: tflint
+        run: tflint --recursive --format compact
         working-directory: ${{ matrix.path }}
 
-      - name: Terraform Format Check
-        run: terraform fmt -check
+  plan:
+    # Plan uniquement sur PR, avec credentials factices : on teste la
+    # convergence sans toucher Proxmox. Les secrets réels sont injectés
+    # via Vault hors CI, voir docs/runbooks/secrets.md.
+    name: plan-dry (${{ matrix.path }})
+    runs-on: ubuntu-22.04
+    needs: [validate, tflint]
+    if: github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        path:
+          - terraform/siteA
+          - terraform/siteB
+    env:
+      TF_VAR_proxmox_endpoint: "https://proxmox.example:8006"
+      TF_VAR_proxmox_api_token: "fake=fake"
+      TF_VAR_proxmox_insecure: "true"
+      TF_VAR_ssh_public_keys: "ssh-ed25519 AAAA"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+      - name: init
+        run: terraform init -backend=false -input=false
         working-directory: ${{ matrix.path }}
-
-      - name: Terraform Validate
-        run: terraform validate
-        working-directory: ${{ matrix.path }}
-
-      - name: Terraform Plan
-        run: terraform plan -no-color
+      - name: plan -refresh=false (exit 0|1|2 accepted)
+        run: terraform plan -input=false -refresh=false -no-color || [ $? -eq 2 ]
         working-directory: ${{ matrix.path }}
