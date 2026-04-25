@@ -1,0 +1,21 @@
+# Copier vers terraform.tfvars (ignoré par git) avant `terraform apply`.
+
+pve_endpoint        = "https://pve-s1.lan:8006/"
+pve_username        = "terraform@pve"
+pve_node            = "pve-s1"
+pve_insecure        = false
+
+ubuntu_template_id  = 9000
+pfsense_template_id = 9100
+datastore_id        = "local-lvm"
+
+netbox_endpoint     = "https://netbox.s1.lan/"
+netbox_site_id      = 1
+
+dns_servers         = ["10.10.10.30", "192.168.0.30"]
+dns_domain          = "s1.lan"
+
+admin_ssh_keys = [
+  "ssh-ed25519 AAAA...replaceme... desmon@laptop",
+  "ssh-ed25519 AAAA...replaceme... teammate@laptop",
+]

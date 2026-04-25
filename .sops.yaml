@@ -1,0 +1,40 @@
+---
+# SOPS configuration — encrypts secrets at rest using age keys.
+# Public keys are listed here. Private keys (~/.config/sops/age/keys.txt)
+# stay on each team member's machine and MUST NEVER be committed.
+#
+# Add a new team member:
+#   1. They generate a key:  age-keygen -o ~/.config/sops/age/keys.txt
+#   2. They share their PUBLIC key (starts with "age1...")
+#   3. Append the key to the anchors below and run:
+#        sops updatekeys secrets/*.enc.yml
+#
+# Rotate a key:
+#   sops --rotate -i secrets/<file>.enc.yml
+
+keys:
+  - &desmon age1t9uk8ytys5uxwa7mzkay24nvfakcnrsjeypkq46cgt5r952e436sstkk9s
+  # - &teammate2 age1placeholderforteammate2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  # - &teammate3 age1placeholderforteammate3xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+creation_rules:
+  - path_regex: secrets/.*\.enc\.ya?ml$
+    key_groups:
+      - age:
+          - *desmon
+          # - *teammate2
+          # - *teammate3
+
+  - path_regex: ansible/group_vars/.*vault\.ya?ml$
+    key_groups:
+      - age:
+          - *desmon
+          # - *teammate2
+          # - *teammate3
+
+  - path_regex: ansible/host_vars/.*vault\.ya?ml$
+    key_groups:
+      - age:
+          - *desmon
+          # - *teammate2
+          # - *teammate3

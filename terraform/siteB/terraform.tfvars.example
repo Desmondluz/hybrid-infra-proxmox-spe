@@ -1,0 +1,19 @@
+pve_endpoint        = "https://pve-s2.lan:8006/"
+pve_username        = "terraform@pve"
+pve_node            = "pve-s2"
+pve_insecure        = false
+
+ubuntu_template_id  = 9000
+pfsense_template_id = 9100
+datastore_id        = "local-lvm"
+
+netbox_endpoint     = "https://netbox.s1.lan/"
+netbox_site_id      = 2
+
+dns_servers         = ["192.168.0.30", "10.10.10.30"]
+dns_domain          = "s2.lan"
+bastion_wan_port    = 2222
+
+admin_ssh_keys = [
+  "ssh-ed25519 AAAA...replaceme... desmon@laptop",
+]

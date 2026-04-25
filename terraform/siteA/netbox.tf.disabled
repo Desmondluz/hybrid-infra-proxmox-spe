@@ -1,0 +1,64 @@
+# -----------------------------------------------------------------------------
+# Site A — provider NetBox + enregistrement des préfixes / VLAN
+# -----------------------------------------------------------------------------
+# Ce fichier est isolé du reste de la racine Terraform pour pouvoir être
+# désactivé tant que NetBox n'est pas déployé : il suffit de mettre
+# `netbox_enabled = false` dans terraform.tfvars (le module n'est alors pas
+# instancié) et de renommer ce fichier `netbox.tf.disabled` pour retirer
+# entièrement le provider NetBox du graphe (utile en bootstrap, avant que
+# NetBox ne soit accessible).
+#
+# Activation normale (NetBox up) :
+#   1. terraform.tfvars : netbox_enabled = true
+#   2. (re)nommer le fichier en `netbox.tf` et lancer `terraform init`.
+# -----------------------------------------------------------------------------
+
+terraform {
+  required_providers {
+    netbox = {
+      source  = "e-breuninger/netbox"
+      version = ">= 3.8.0"
+    }
+  }
+}
+
+provider "netbox" {
+  server_url = var.netbox_endpoint
+  api_token  = data.sops_file.secrets.data["netbox_token"]
+}
+
+module "netbox_records" {
+  count  = var.netbox_enabled ? 1 : 0
+  source = "../modules/netbox-records"
+
+  netbox_site_id = var.netbox_site_id
+  tags           = ["site-a", "terraform"]
+
+  vlans = [
+    { name = "lan-s1", vid = 10, tags = ["lan"] },
+    { name = "admin-s1", vid = 11, tags = ["admin"] },
+  ]
+
+  prefixes = [
+    {
+      prefix      = "10.10.0.0/24"
+      description = "LAN Site A"
+      vlan_id     = 10
+    },
+    {
+      prefix      = "10.10.10.0/24"
+      description = "Admin Site A"
+      vlan_id     = 11
+    },
+  ]
+}
+
+output "site_a_netbox_prefixes" {
+  description = "IDs NetBox des préfixes du Site A."
+  value       = try(module.netbox_records[0].prefix_ids, [])
+}
+
+output "site_a_netbox_vlans" {
+  description = "IDs NetBox des VLANs du Site A."
+  value       = try(module.netbox_records[0].vlan_ids, [])
+}

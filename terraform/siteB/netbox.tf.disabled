@@ -1,0 +1,65 @@
+# -----------------------------------------------------------------------------
+# Site B — provider NetBox + enregistrement des préfixes / VLAN
+# -----------------------------------------------------------------------------
+# Ce fichier est isolé du reste de la racine Terraform pour pouvoir être
+# désactivé tant que NetBox n'est pas déployé : il suffit de mettre
+# `netbox_enabled = false` dans terraform.tfvars (le module n'est alors pas
+# instancié) et de renommer ce fichier `netbox.tf.disabled` pour retirer
+# entièrement le provider NetBox du graphe (utile en bootstrap, avant que
+# NetBox ne soit accessible).
+#
+# Activation normale (NetBox up) :
+#   1. terraform.tfvars : netbox_enabled = true
+#   2. (re)nommer le fichier en `netbox.tf` et lancer `terraform init`.
+# -----------------------------------------------------------------------------
+
+terraform {
+  required_providers {
+    netbox = {
+      source  = "e-breuninger/netbox"
+      version = ">= 3.8.0"
+    }
+  }
+}
+
+provider "netbox" {
+  server_url = var.netbox_endpoint
+  api_token  = data.sops_file.secrets.data["netbox_token"]
+}
+
+module "netbox_records" {
+  count  = var.netbox_enabled ? 1 : 0
+  source = "../modules/netbox-records"
+
+  netbox_site_id = var.netbox_site_id
+  tags           = ["site-b", "terraform"]
+
+  vlans = [
+    { name = "lan-s2", vid = 20, tags = ["lan"] },
+    { name = "services-s2", vid = 21, tags = ["services"] },
+    { name = "dmz-s2", vid = 22, tags = ["dmz"] },
+  ]
+
+  prefixes = [
+    {
+      prefix      = "192.168.0.0/24"
+      description = "LAN Site B (bastion, DNS)"
+      vlan_id     = 20
+    },
+    {
+      prefix      = "192.168.10.0/24"
+      description = "Services Site B (Elastic, Webapp)"
+      vlan_id     = 21
+    },
+  ]
+}
+
+output "site_b_netbox_prefixes" {
+  description = "IDs NetBox des préfixes du Site B."
+  value       = try(module.netbox_records[0].prefix_ids, [])
+}
+
+output "site_b_netbox_vlans" {
+  description = "IDs NetBox des VLANs du Site B."
+  value       = try(module.netbox_records[0].vlan_ids, [])
+}
