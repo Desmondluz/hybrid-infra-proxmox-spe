@@ -30,22 +30,30 @@ reprise associées, les RTO/RPO visés et les responsabilités.
 **Probabilité** : élevée · **Exemple** : disque corrompu `services-s1`.
 
 1. Vérifier Proxmox healthy :
+
    ```bash
    ssh root@proxmox-s1 "qm list; pvesm status"
    ```
+
 2. Détruire la VM corrompue :
+
    ```bash
    cd terraform/siteA && terraform destroy -target=module.services_s1
    ```
+
 3. Recréer :
+
    ```bash
    terraform apply -target=module.services_s1
    ```
+
 4. Reconfigurer avec Ansible :
+
    ```bash
    cd ../../ansible
    ansible-playbook -i inventories/siteA.ini playbooks/siteA.yml --limit services-s1
    ```
+
 5. Restaurer NetBox DB si besoin (runbook `netbox.md` §5).
 
 **RTO visé** : 30 min après détection.
@@ -70,18 +78,22 @@ reprise associées, les RTO/RPO visés et les responsabilités.
 
 1. Déclencher killswitch sur le site concerné (runbook `killswitch.md`).
 2. Geler les snapshots Proxmox en cours :
+
    ```bash
    ssh root@proxmox-s1 "for id in 100 101 102; do qm snapshot $id forensic-$(date +%F-%H%M); done"
    ```
+
 3. Rotation IMMÉDIATE des secrets exposés :
    - clefs SSH admin (génération via §DRP secrets)
    - tokens Vault opérateurs
    - cert OpenVPN (régénère via `vault/scripts/generate-certs.sh`)
 4. Forensic : export logs bruts Elasticsearch fenêtre [-24h, now] :
+
    ```bash
    curl -u elastic:${ES_PW} "http://localhost:9200/cia-*/_search?size=10000&q=..." \
      > docs/forensic/snapshot-$(date +%F).ndjson
    ```
+
 5. Rapport sous 48 h.
 
 **RTO visé** : 1 h isolation ; 24 h reprise contrôlée.
@@ -145,7 +157,7 @@ Chaque exercice génère un compte-rendu commité sous `docs/drp/reports/`.
 | DRP coordinator   | #ops + téléphone on-call       |
 | Infra provider    | Proxmox support                |
 | ISP               | N° commercial (cf. contrats)   |
-| Stakeholders      | stakeholders@cia.lan           |
+| Stakeholders      | <stakeholders@cia.lan>           |
 
 ## 7. Journal de révision
 

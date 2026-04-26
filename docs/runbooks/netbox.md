@@ -7,8 +7,8 @@ Caddy TLS (`netbox.s1.lan`).
 
 ## 1. Accès
 
-- UI : https://netbox.s1.lan
-- API : https://netbox.s1.lan/api/
+- UI : <https://netbox.s1.lan>
+- API : <https://netbox.s1.lan/api/>
 - Credentials : `admin` (Vault `kv/cia/netbox/admin`) + token API
   (`kv/cia/netbox/admin-token`).
 
@@ -61,17 +61,21 @@ sudo docker compose restart netbox
 
 1. Lire le CHANGELOG upstream (breaking changes en 4.x).
 2. Backup :
+
    ```bash
    git commit -am "ops: netbox backup pre-upgrade $(date +%F)"
    # + pg_dump §4
    ```
+
 3. Bumper le tag image dans `/opt/netbox/docker-compose.yml`.
 4. `docker compose pull && docker compose up -d`.
 5. Migrer :
+
    ```bash
    sudo docker compose exec netbox /opt/netbox/venv/bin/python \
         /opt/netbox/netbox/manage.py migrate
    ```
+
 6. Vérifier UI + seed_netbox.py idempotent.
 
 ## 7. API lecture/écriture — exemples

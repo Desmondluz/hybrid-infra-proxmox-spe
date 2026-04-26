@@ -33,6 +33,7 @@ ssh -p 2222 admin@bastion.s2.lan ping -c 3 172.16.0.1
 ```
 
 Critères OK :
+
 - `status.log` côté server : `Peer Connection Initiated with [AF_INET]...`
 - `ping 172.16.0.x` < 30 ms, 0 % loss
 - Kibana index `cia-openvpn-*` reçoit des événements dans les 5 dernières min

@@ -1,7 +1,27 @@
 ---
+# Configuration markdownlint pour le projet CIA — GR46.
+# Doc des règles : https://github.com/DavidAnson/markdownlint/tree/main/doc
+#
+# Politique : on garde la rigueur sur la structure (headings, listes, fences
+# correctement séparés — auto-fixés par markdownlint --fix), mais on
+# assouplit les règles purement éditoriales que nos runbooks et docs métier
+# enfreignent volontairement (URLs visibles à la lecture, footers en italique,
+# blocs ASCII art sans langage explicite).
+
 default: true
-line-length: false
-no-inline-html: false
-first-line-heading: false
+
+# --- Désactivés (politique projet) -----------------------------------------
+line-length: false              # MD013 — gérée par les hooks de format, pas ici
+no-inline-html: false           # MD033 — on utilise <details>, <br> dans les runbooks
+first-line-heading: false       # MD041 — STATUS.md / followups commencent par metadata
+no-bare-urls: false             # MD034 — runbooks pfsense/netbox affichent les URLs admin pour copy/paste
+no-emphasis-as-heading: false   # MD036 — footer "*GR46 — CIA Epitech 2025-2026*" délibéré
+fenced-code-language: false     # MD040 — certains blocs sont de l'ASCII art ou de l'output brut
+no-duplicate-heading: false     # MD024 — sections "À faire / En cours / Abandonnés" répétées par follow-up
+
+# --- Réglages fins ---------------------------------------------------------
 ul-indent:
   indent: 2
+
+ul-style:
+  style: dash                   # MD004 — uniformiser les listes sur '- ', pas '+ '

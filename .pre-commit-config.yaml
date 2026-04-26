@@ -24,15 +24,21 @@ repos:
     hooks:
       - id: terraform_fmt
       - id: terraform_validate
-      - id: terraform_tflint
-        args:
-          - --args=--minimum-failure-severity=warning
+      # terraform_tflint volontairement désactivé en pré-commit : il exige le
+      # binaire `tflint` localement et un `tflint --init` (téléchargement de
+      # plugins). Couverture déjà assurée par .github/workflows/terraform.yml
+      # job `tflint (terraform/<site>)`. Réactiver ici si on veut bloquer en
+      # local ; sinon laisser la CI faire foi.
 
   - repo: https://github.com/ansible/ansible-lint
     rev: v24.2.0
     hooks:
       - id: ansible-lint
         files: ^(ansible/|\.github/workflows/ansible\.yml)
+        # ansible-lint a besoin d'ansible-core pour parser les playbooks ;
+        # le pin doit rester compatible avec requirements-dev.txt.
+        additional_dependencies:
+          - "ansible-core>=2.16,<2.17"
 
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1

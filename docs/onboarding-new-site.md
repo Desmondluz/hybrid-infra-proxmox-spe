@@ -55,6 +55,7 @@ cp ansible/group_vars/siteB.yml  ansible/group_vars/siteC.yml
 ```
 
 Édits :
+
 - `site_id: 3`
 - IPs spécifiques Site C
 - `vpn_role: "client"` (si hub Site A reste unique)

@@ -35,6 +35,7 @@ dernières minutes pour pfsense, ssh et openvpn.
 ## 3. ILM — politique cia-30d
 
 Créée par `roles/elasticsearch/tasks/main.yml`. Phases :
+
 - `hot`  : pas d'action
 - `delete` : après 30 jours, suppression
 
@@ -50,19 +51,25 @@ Modifier la rétention : changer `elastic_retention_days` dans
 ## 4. Plein disque / "red" cluster
 
 1. Mesurer :
+
    ```bash
    df -h /var/lib/elasticsearch
    curl -u elastic:${ES_PW} http://localhost:9200/_cat/allocation?v
    ```
+
 2. Forcer ILM à nettoyer :
+
    ```bash
    curl -u elastic:${ES_PW} -X POST http://localhost:9200/_ilm/explain
    curl -u elastic:${ES_PW} -X POST "http://localhost:9200/cia-*/_ilm/move/hot" -d '{...}'
    ```
+
 3. Libérer manuellement (en dernier recours) :
+
    ```bash
    curl -u elastic:${ES_PW} -X DELETE "http://localhost:9200/cia-*-<YYYY.MM.DD>"
    ```
+
 4. Si status `red` persistent : stop logstash côté ingestion (évite perte),
    diagnostic avec `_cat/shards?v`, recover les shards OFFLINE manuellement.
 

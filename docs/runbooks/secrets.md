@@ -38,6 +38,7 @@ git commit -am "secrets: rotate elastic_admin_password"
 ```
 
 NE JAMAIS :
+
 - `cat` > `tee` un `.sops.yml` en clair.
 - Committer `.decrypted.yml` (gitignored).
 
@@ -51,6 +52,7 @@ export VAULT_ADDR=https://vault.s1.lan:8200
 ```
 
 Distribution recommandée :
+
 1. lead tech
 2. lead sécurité
 3. sponsor projet
@@ -88,8 +90,9 @@ Voir [vpn.md §4.5](vpn.md#45-renouvellement-certs).
 
 ## 6. Audit / scan de fuite
 
-- Pré-commit : `gitleaks` bloque tout commit contenant `BEGIN PRIVATE KEY`,
-  `aws_access_key_id`, etc.
+- Pré-commit : `gitleaks` bloque tout commit contenant des marqueurs de clés
+  privées PEM (`-----BEGIN [...] PRIVATE KEY-----`), des `aws_access_key_id`,
+  etc.
 - CI : workflow `.github/workflows/security-scan.yml` lance `gitleaks`,
   `checkov`, `tflint`.
 - Audit annuel : `grep -rE "(password|secret|token)=\"[^\"]{6,}\"" .`
@@ -106,4 +109,4 @@ Voir [vpn.md §4.5](vpn.md#45-renouvellement-certs).
 
 Grave — bascule sur DRP §4 "Vault rebuild" : export kv via token root
 stocké hors bande (si disponible), re-init vault neuf, restore des secrets.
-Sinon : reseed manuel (voir `docs/drp/drp.md` scénario #5).
+S

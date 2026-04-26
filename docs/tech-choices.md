@@ -65,7 +65,7 @@ Chaque entrée liste le **contexte**, le **choix**, les **alternatives**
 
 - **Contexte** : provisioning VM + VLAN via Proxmox API.
 - **Choix** : Terraform 1.7 + `bpg/proxmox` + `e-breuninger/netbox`
-  + `carlpett/sops`.
+  - `carlpett/sops`.
 - **Alternatives** : OpenTofu (compat TF mais encore jeune), Pulumi
   (overkill pour ce projet).
 - **Trade-off** : Terraform → license BSL depuis 2023 ; on maintient

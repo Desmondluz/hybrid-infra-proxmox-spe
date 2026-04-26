@@ -24,6 +24,7 @@
 ## 2. Livrables FW2
 
 ### 2.1 Infrastructure (M / S)
+
 - [x] Terraform modules `proxmox-vm` + `network` réutilisables
 - [x] 3 VMs provisionnées par site (respecte contrainte)
 - [x] Bridges Proxmox + VLAN TF
@@ -31,6 +32,7 @@
       kibana, logstash, bastion, dns-forwarder, webapp, filebeat)
 
 ### 2.2 Réseau / Firewall / VPN
+
 - [x] Schéma `docs/architecture/infra.drawio` + variante `vpn.drawio`
 - [x] Matrice d'accès `docs/access-matrix.md`
 - [x] Killswitch opérationnel + runbook
@@ -38,6 +40,7 @@
 - [x] Tunnel AES-256-GCM + SHA256 + tls-crypt
 
 ### 2.3 Sécurité
+
 - [x] Bastion SSH MFA (TOTP Google Authenticator)
 - [x] fail2ban sur tous les hôtes Linux
 - [x] Auditd règles custom (pfsense, netbox, openvpn)
@@ -45,12 +48,14 @@
 - [x] Vault + SOPS documentés `docs/runbooks/secrets.md`
 
 ### 2.4 Observabilité
+
 - [x] Filebeat déployé partout
 - [x] Pipelines Logstash : pfSense, SSH, OpenVPN, NetBox
 - [x] ILM policy `cia-30d`
 - [x] Dashboards Kibana de base (SSH, pfSense, NetBox, Overview)
 
 ### 2.5 Documentation
+
 - [x] 7 runbooks : vpn, pfsense, bastion, elasticsearch, killswitch,
       netbox, secrets
 - [x] DRP avec 5 scénarios `docs/drp/drp.md`
@@ -58,6 +63,7 @@
 - [x] Golden path nouveau site `docs/onboarding-new-site.md`
 
 ### 2.6 CI/CD + qualité
+
 - [x] `.pre-commit-config.yaml` (gitleaks, lint, fmt)
 - [x] Workflows `terraform`, `ansible`
 - [ ] Workflow `security-scan` (tflint + checkov + gitleaks)

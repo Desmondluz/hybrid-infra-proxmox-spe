@@ -19,18 +19,23 @@ ssh -p 2222 admin@<IP_PUBLIQUE_SITE_B>
 
 1. Éditer `ansible/group_vars/all.yml` → ajouter login + clef publique.
 2. Lancer :
+
    ```bash
    ansible-playbook -i ansible/inventories/siteB.ini ansible/playbooks/bastion.yml --tags users
    ```
+
 3. Sur le bastion, l'utilisateur exécute le setup MFA :
+
    ```bash
    ssh -p 2222 <user>@bastion.s2.lan
    ~/setup-mfa.sh
    ```
+
    Le script (`roles/bastion/templates/setup-mfa.sh.j2`) génère un QR code,
    enregistre `~/.google_authenticator` (chmod 400), ne stocke JAMAIS la
    seed ailleurs.
 4. Vérifier :
+
    ```bash
    ssh -p 2222 <user>@bastion.s2.lan 'true'  # doit demander clef + TOTP
    ```
@@ -51,17 +56,22 @@ Attendu : fail2ban `Banned IP list` < 20 (monitoré via Kibana).
 ## 4. Incident : pic d'échecs SSH
 
 1. Vérifier logs :
+
    ```bash
    journalctl -u sshd -n 200 | grep -iE "invalid|failed"
    ```
+
 2. Déclencher killswitch si brute force > 100/min :
+
    ```bash
    ansible-playbook ansible/playbooks/killswitch.yml -e killswitch_state=active -e site=siteB
    ```
+
 3. Suivi :
    - Kibana : dashboard "SSH failures — 1h"
    - Grep `ssh_failure` tag dans `cia-system-*`
 4. Lever killswitch après mitigation :
+
    ```bash
    ansible-playbook ansible/playbooks/killswitch.yml -e killswitch_state=inactive -e site=siteB
    ```

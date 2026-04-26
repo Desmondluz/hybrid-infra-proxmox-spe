@@ -12,8 +12,10 @@ collections:
     version: ">=3.18.0"
   - name: community.sops
     version: ">=1.6.0"
-  - name: elastic.elasticsearch
-    version: ">=0.12.0"
+  # NOTE: elastic.elasticsearch retirée — la collection est en pre-release
+  # (>=0.12.0 → 1.0.0-rc) et nous installons Elasticsearch via apt+systemd
+  # (cf. ansible/roles/elasticsearch/tasks/main.yml). À réintégrer le jour
+  # où Elastic publie une 1.x stable, si on bascule sur le rôle officiel.
   - name: pfsensible.core
     version: ">=0.5.0"
 

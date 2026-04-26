@@ -21,3 +21,9 @@ ignore: |
   .ansible/
   **/node_modules/
   **/.terraform/
+  # Fichiers chiffrés par SOPS — leur structure est imposée par le format
+  # cipher (lignes ENC[…] arbitrairement longues, indentation non standard).
+  secrets/
+  **/*.enc.yml
+  **/*.sops.yml
+  **/*.sops.yaml

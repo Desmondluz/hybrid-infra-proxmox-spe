@@ -16,6 +16,7 @@ ansible-playbook ansible/playbooks/killswitch.yml \
 ```
 
 Ce playbook :
+
 1. Met `KILLSWITCH_ACTIVE` à `0.0.0.0/0` via l'API pfSense.
 2. Force `pfctl reload`.
 3. Vérifie qu'un ping WAN échoue depuis le LAN (assertion).

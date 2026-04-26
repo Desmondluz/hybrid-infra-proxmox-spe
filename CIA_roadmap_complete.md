@@ -26,6 +26,7 @@ Toutes les étapes sont numérotées et cochables. Chaque étape indique entre c
 ### 0.3 Setup initial du repository `[repo_practices, repo_content]`
 
 - [ ] 0.3.1 — Créer l'arborescence cible :
+
   ```
   cia-infra/
   ├── .github/workflows/          (ou .gitlab-ci.yml)
@@ -52,6 +53,7 @@ Toutes les étapes sont numérotées et cochables. Chaque étape indique entre c
   ├── ARCHITECTURE.md
   └── LICENSE
   ```
+
 - [ ] 0.3.2 — Rédiger un `.gitignore` complet (terraform state, .env, clés SSH, artefacts compilés, éditeurs IDE, OS files).
 - [ ] 0.3.3 — Rédiger le `README.md` initial avec : présentation, stack, comment démarrer, comment contribuer, liens docs.
 - [ ] 0.3.4 — Rédiger `CONTRIBUTING.md` avec la convention de commits (`feat:`, `fix:`, `docs:`, `ci:`, `refactor:`, `test:`), la stratégie de branches, le process de PR.

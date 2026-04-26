@@ -9,6 +9,7 @@
 ## 1. Rappel FW2
 
 Follow-up 2 (avril 2026) a validé :
+
 - l'architecture à 2 sites + tunnel OpenVPN
 - les 7 runbooks et le DRP
 - la CI/CD Terraform + Ansible + security-scan
@@ -34,6 +35,7 @@ décision".
 ## 3. Delta depuis FW2
 
 ### À réaliser
+
 - [ ] Script `scripts/rotate-openvpn.sh` + cron Ansible
 - [ ] Workflow GitHub `.github/workflows/cert-rotation.yml` (dispatch
       manuel + planifié)
@@ -47,10 +49,12 @@ décision".
       `docs/onboarding-new-site.md`)
 
 ### En cours
+
 - [ ] Revue du DRP après exercice réel
 - [ ] Intégration feedback qualité Silya/Valentin sur runbooks
 
 ### Abandonnés (justifier)
+
 - [ ] Migration OpenTofu → reportée, TF 1.5.x encore supporté par BSL
       pour usage interne non-commercial.
 

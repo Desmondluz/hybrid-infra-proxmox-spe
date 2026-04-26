@@ -170,7 +170,7 @@ Runbooks couvrant la bonne marche quotidienne :
   `LAN` → `ADMIN` interdite. Matrice : [`docs/access-matrix.md`](docs/access-matrix.md).
 - OpenVPN : TLS 1.2+, AES-256-GCM, tls-crypt, PKI via Vault.
 - Secrets statiques : SOPS + age (`.sops.yaml`). Dynamiques : Vault (KV-v2
-  + PKI). Procédure de rotation : [`docs/runbooks/secrets.md`](docs/runbooks/secrets.md).
+  - PKI). Procédure de rotation : [`docs/runbooks/secrets.md`](docs/runbooks/secrets.md).
 - `.gitleaks.toml` + pre-commit `gitleaks` bloquent les fuites avant push.
 
 ## Observabilité

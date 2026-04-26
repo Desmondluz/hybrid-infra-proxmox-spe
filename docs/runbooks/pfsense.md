@@ -9,8 +9,8 @@ troubleshooting des règles, sauvegarde, restauration.
 
 | Site | Hôte       | URL admin                 | SSH                         |
 |------|------------|---------------------------|-----------------------------|
-| A    | pfsense-s1 | https://10.10.10.1        | `ssh admin@10.10.10.1`      |
-| B    | pfsense-s2 | https://192.168.10.1      | via bastion Site B          |
+| A    | pfsense-s1 | <https://10.10.10.1>        | `ssh admin@10.10.10.1`      |
+| B    | pfsense-s2 | <https://192.168.10.1>      | via bastion Site B          |
 
 Compte admin : Vault `kv/cia/pfsense/siteX/admin`. Jamais en local.
 
@@ -70,15 +70,19 @@ git commit -m "ops: pfSense siteA backup $(date +%F)"
 
 1. Identifier le commit sain : `git log -p configs/pfsense/siteA-config.xml`.
 2. Extraire le XML :
+
    ```bash
    git show <commit>:configs/pfsense/siteA-config.xml > /tmp/restore.xml
    ```
+
 3. Uploader via GUI → Diagnostics → Backup & Restore, ou API :
+
    ```bash
    curl -sS -u admin:${PFSENSE_PASS} -k \
         -F "file=@/tmp/restore.xml" \
         https://10.10.10.1/api/v1/diagnostics/config_history/restore
    ```
+
 4. Attendre reboot pfSense (≈ 60 s).
 
 Temps cible : 10 min.
