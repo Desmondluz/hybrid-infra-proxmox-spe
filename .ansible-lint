@@ -2,14 +2,15 @@
 # ansible-lint — configuration projet CIA / GR46.
 # Doc : https://ansible.readthedocs.io/projects/lint/configuring/
 #
-# Politique : on lint le code (best-practices, FQCN, idempotence) mais on
-# délègue le `syntax-check` au job matrix dédié dans
-# `.github/workflows/ansible.yml` (qui installe d'abord les collections via
-# `ansible-galaxy collection install -r ansible/requirements.yml`).
+# Politique : on lint le code (best-practices, FQCN, idempotence). Le
+# `syntax-check` est délégué au job matrix dédié (workflow ansible.yml,
+# job `syntax-check`) qui exécute `ansible-playbook --syntax-check`
+# par site (siteA / siteB) avec le bon inventaire.
 #
-# Le hook pre-commit ansible-lint tourne dans un venv isolé qui ne voit pas
-# les collections galaxy ; on les mocke ici pour qu'il ne plante pas sur
-# les imports dynamiques. Le linting réel se fait dans le workflow CI.
+# Note importante : ansible-lint v24+ refuse `syntax-check` dans
+# skip_list/warn_list (règle "unskippable"). On compte donc sur l'env
+# ANSIBLE_ROLES_PATH + ANSIBLE_COLLECTIONS_PATH (set dans le workflow)
+# pour que syntax-check trouve rôles & modules.
 
 profile: moderate
 
@@ -21,10 +22,9 @@ exclude_paths:
   - terraform/
   - secrets/
 
-# Modules de collections externes — mockés pour que ansible-lint puisse
-# parser les playbooks sans avoir installé les collections (utile pour le
-# pre-commit hook isolé). Le job CI `lint` installe les vraies collections
-# et passe au-delà du mock.
+# Modules de collections externes — mockés en filet de sécurité pour le
+# hook pre-commit (si réactivé un jour) et pour les environnements où la
+# collection n'est pas (encore) installée.
 mock_modules:
   - community.general.timezone
   - community.docker.docker_compose_v2
@@ -33,9 +33,9 @@ mock_modules:
   - pfsensible.core.pfsense_rule
   - pfsensible.core.pfsense_alias
 
-# Rôles référencés depuis ansible/playbooks/*.yml — résolution faite via
-# `ansible/ansible.cfg` (`roles_path = roles/`). On les mocke pour le hook
-# pre-commit qui ne respecte pas le ANSIBLE_ROLES_PATH.
+# Rôles internes — mockés pour les environnements isolés. Le workflow CI
+# définit ANSIBLE_ROLES_PATH=ansible/roles donc les vraies définitions
+# sont chargées en priorité.
 mock_roles:
   - common
   - filebeat
@@ -50,13 +50,13 @@ mock_roles:
   - bastion
 
 # Règles désactivées avec justification.
+# NOTE: `syntax-check` ne peut PAS être listé ici (unskippable depuis v24).
 skip_list:
-  - syntax-check        # couvert par job matrix dédié (workflow ansible.yml)
-  - galaxy[no-changelog] # rôles internes, pas de changelog Galaxy
-  - meta-no-info        # rôles internes, pas publiés sur Galaxy
+  - galaxy[no-changelog]   # rôles internes, pas de changelog Galaxy
+  - meta-no-info           # rôles internes, pas publiés sur Galaxy
 
 # Règles que l'on rétrograde de fatal à warning (politique projet).
 warn_list:
   - experimental
-  - fqcn-builtins       # déjà appliqué dans 95% du code, transition douce
-  - role-name           # nos rôles utilisent des tirets (`dns-forwarder`)
+  - fqcn-builtins          # déjà appliqué dans 95% du code, transition douce
+  - role-name              # nos rôles utilisent des tirets (`dns-forwarder`)
