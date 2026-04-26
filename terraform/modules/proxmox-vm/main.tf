@@ -1,10 +1,12 @@
 # -----------------------------------------------------------------------------
 # Module proxmox-vm
 # -----------------------------------------------------------------------------
-# Paramétré pour déployer une VM Linux sur Proxmox VE via le provider
-# bpg/proxmox. La VM est clonée depuis un template cloud-init existant sur
-# l'hyperviseur, configurée via cloud-init (user, ssh-key, network), puis
-# démarrée.
+# Paramétré pour déployer une VM sur Proxmox VE via le provider bpg/proxmox.
+# La VM est clonée depuis un template existant et démarrée. Par défaut elle
+# est configurée via cloud-init (user, ssh-key, network) ; pour un template
+# qui ne supporte pas cloud-init (pfSense / FreeBSD), passer
+# `enable_cloud_init = false`, `enable_qemu_agent = false`, `os_type = "other"`
+# et configurer la VM en post-clone via Ansible.
 #
 # Usage :
 #   module "vm_netbox" {
@@ -37,8 +39,8 @@ resource "proxmox_virtual_environment_vm" "this" {
   }
 
   agent {
-    enabled = true
-    trim    = true
+    enabled = var.enable_qemu_agent
+    trim    = var.enable_qemu_agent
   }
 
   cpu {
@@ -68,28 +70,31 @@ resource "proxmox_virtual_environment_vm" "this" {
   }
 
   operating_system {
-    type = "l26"
+    type = var.os_type
   }
 
-  initialization {
-    datastore_id = var.datastore_id
-    interface    = "ide2"
+  dynamic "initialization" {
+    for_each = var.enable_cloud_init ? [1] : []
+    content {
+      datastore_id = var.datastore_id
+      interface    = "ide2"
 
-    user_account {
-      username = var.cloud_init_user
-      keys     = var.ssh_public_keys
-    }
-
-    ip_config {
-      ipv4 {
-        address = var.ip_address
-        gateway = var.gateway
+      user_account {
+        username = var.cloud_init_user
+        keys     = var.ssh_public_keys
       }
-    }
 
-    dns {
-      domain  = var.dns_domain
-      servers = var.dns_servers
+      ip_config {
+        ipv4 {
+          address = var.ip_address
+          gateway = var.gateway
+        }
+      }
+
+      dns {
+        domain  = var.dns_domain
+        servers = var.dns_servers
+      }
     }
   }
 

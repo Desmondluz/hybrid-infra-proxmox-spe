@@ -13,26 +13,26 @@
 #   sops --rotate -i secrets/<file>.enc.yml
 
 keys:
-  - &desmon age1t9uk8ytys5uxwa7mzkay24nvfakcnrsjeypkq46cgt5r952e436sstkk9s
+  - &desmon age1zt5n4q27aw066cz6huh8vd4dzcnnd7075fres958f6t7e7p2yvkq9lx2cz
   # - &teammate2 age1placeholderforteammate2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   # - &teammate3 age1placeholderforteammate3xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 creation_rules:
-  - path_regex: secrets/.*\.enc\.ya?ml$
+  - path_regex: secrets[/\\].*\.enc\.ya?ml$
     key_groups:
       - age:
           - *desmon
           # - *teammate2
           # - *teammate3
 
-  - path_regex: ansible/group_vars/.*vault\.ya?ml$
+  - path_regex: ansible[/\\]group_vars[/\\].*vault\.ya?ml$
     key_groups:
       - age:
           - *desmon
           # - *teammate2
           # - *teammate3
 
-  - path_regex: ansible/host_vars/.*vault\.ya?ml$
+  - path_regex: ansible[/\\]host_vars[/\\].*vault\.ya?ml$
     key_groups:
       - age:
           - *desmon

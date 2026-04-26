@@ -27,6 +27,13 @@ module "vm_pfsense" {
   dns_servers     = var.dns_servers
   ssh_public_keys = var.admin_ssh_keys
 
+  # pfSense = FreeBSD : pas de cloud-init, pas de QGA dans le template par défaut.
+  # La config (WAN/LAN/règles/OpenVPN) sera poussée via le rôle Ansible `pfsense`
+  # après clone. ip_address ci-dessus est purement documentaire (cible post-config).
+  enable_cloud_init = false
+  enable_qemu_agent = false
+  os_type           = "other"
+
   tags = ["site-a", "firewall", "pfsense", "critical"]
 }
 

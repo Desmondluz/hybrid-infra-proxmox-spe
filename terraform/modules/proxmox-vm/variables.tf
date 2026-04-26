@@ -116,3 +116,25 @@ variable "started" {
   type        = bool
   default     = true
 }
+
+variable "enable_cloud_init" {
+  description = "Activer la configuration cloud-init (user, IP, DNS). Mettre à false pour les images sans cloud-init (pfSense / FreeBSD)."
+  type        = bool
+  default     = true
+}
+
+variable "enable_qemu_agent" {
+  description = "Activer le QEMU guest agent. Mettre à false pour les templates sans QGA (pfSense)."
+  type        = bool
+  default     = true
+}
+
+variable "os_type" {
+  description = "Type d'OS Proxmox : l26 (Linux 2.6+), other (FreeBSD/pfSense), win11, etc."
+  type        = string
+  default     = "l26"
+  validation {
+    condition     = contains(["l26", "l24", "other", "solaris", "win11", "win10", "win8", "win7"], var.os_type)
+    error_message = "os_type doit être l26, l24, other, solaris ou win[7-11]."
+  }
+}
