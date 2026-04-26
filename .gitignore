@@ -6,7 +6,7 @@
 !*.tfvars.example
 crash.log
 crash.*.log
-.terraform.lock.hcl
+# .terraform.lock.hcl DOIT être versionné (verrouillage des versions de providers)
 override.tf
 override.tf.json
 *_override.tf
@@ -88,3 +88,4 @@ packer_cache/
 # Plans Terraform binaires (generes par terraform plan -out=...)
 **/tfplan
 **/tfplan.*
+**/*.tfplan
