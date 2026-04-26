@@ -1,0 +1,18 @@
+# ---------------------------------------------------------------------------
+# Outils Python pour CI/CD et hooks locaux pre-commit.
+# Source unique pour:
+#   - .github/workflows/ansible.yml      (lint + syntax)
+#   - .github/workflows/quality.yml      (pre-commit)
+#   - hooks pre-commit locaux            (developer machines)
+#
+# Versions épinglées pour reproductibilité (cf. README §Pré-requis).
+# Mettre à jour ici déclenchera la rebuild du cache pip sur GitHub Actions.
+# ---------------------------------------------------------------------------
+
+# Ansible runtime + linters
+ansible-core==2.16.*
+ansible-lint==24.*
+yamllint==1.35.*
+
+# Pre-commit framework (hooks définis dans .pre-commit-config.yaml)
+pre-commit==3.7.*

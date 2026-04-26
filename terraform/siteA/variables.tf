@@ -37,11 +37,15 @@ variable "datastore_id" {
   default     = "local-lvm"
 }
 
+# Variables consommées par terraform/siteA/netbox.tf.disabled (réactivé en FW3,
+# une fois NetBox provisionné). Conservées ici pour figer le contrat d'API.
+# tflint-ignore: terraform_unused_declarations
 variable "netbox_endpoint" {
   description = "URL API NetBox (ex: https://netbox.s1.lan/)."
   type        = string
 }
 
+# tflint-ignore: terraform_unused_declarations
 variable "netbox_site_id" {
   description = "ID NetBox du site A."
   type        = number
@@ -65,8 +69,9 @@ variable "dns_domain" {
   default     = "s1.lan"
 }
 
+# tflint-ignore: terraform_unused_declarations
 variable "netbox_enabled" {
-  description = "Enregistrer les VLAN/préfixes dans NetBox. Désactivé tant que NetBox n'est pas déployé."
+  description = "Enregistrer les VLAN/préfixes dans NetBox. Désactivé tant que NetBox n'est pas déployé (réactivation FW3 + renommer netbox.tf.disabled)."
   type        = bool
   default     = false
 }

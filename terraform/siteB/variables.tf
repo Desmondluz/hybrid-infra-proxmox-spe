@@ -37,11 +37,15 @@ variable "datastore_id" {
   default     = "local-lvm"
 }
 
+# Variables consommées par terraform/siteB/netbox.tf.disabled (réactivé en FW3,
+# une fois NetBox provisionné). Conservées ici pour figer le contrat d'API.
+# tflint-ignore: terraform_unused_declarations
 variable "netbox_endpoint" {
   description = "URL API NetBox."
   type        = string
 }
 
+# tflint-ignore: terraform_unused_declarations
 variable "netbox_site_id" {
   description = "ID NetBox du site B."
   type        = number
@@ -65,14 +69,18 @@ variable "dns_domain" {
   default     = "s2.lan"
 }
 
+# Consommé par les règles pfSense Site B générées plus tard (cf. configs/pfsense/
+# siteB-config.xml + ansible/roles/pfsense). Variable conservée pour pinning.
+# tflint-ignore: terraform_unused_declarations
 variable "bastion_wan_port" {
   description = "Port SSH exposé sur Internet pour le bastion (non-standard)."
   type        = number
   default     = 2222
 }
 
+# tflint-ignore: terraform_unused_declarations
 variable "netbox_enabled" {
-  description = "Enregistrer les VLAN/préfixes dans NetBox. Désactivé tant que NetBox n'est pas déployé."
+  description = "Enregistrer les VLAN/préfixes dans NetBox. Désactivé tant que NetBox n'est pas déployé (réactivation FW3 + renommer netbox.tf.disabled)."
   type        = bool
   default     = false
 }
