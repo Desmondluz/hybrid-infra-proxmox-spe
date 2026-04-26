@@ -6,6 +6,9 @@ provider "registry.terraform.io/bpg/proxmox" {
   constraints = ">= 0.60.0"
   hashes = [
     "h1:1rhDnCLafSKTL82EviiQRfEdp31VioxKV5TGNBDFoN4=",
+    "h1:EjKFyD9s9uT4HeQtkdKu1tbMFdcwanSe2sUvFJWirQg=",
+    "h1:KfGbjEbqBgmaZU5sIixyDmwxZUo+PzDr4/fWXac8LAA=",
+    "h1:Sq8KJHEsV0G3kOEEsJZPQKg3NfdFvRdj5OQ6iwgzX4E=",
     "zh:0690742b1db878941efd816fe49fa08a5814f11f83db7cdbdf147e516471e9f8",
     "zh:2865fbf6bdb240793fd2f868b62f69c8316a49a6d54f1d0c2be383a0a7af52ce",
     "zh:29dcf11addaa01defd6e9617594ceb68c025d9e56cc7b75085d2bf5533e6c9de",
@@ -28,7 +31,9 @@ provider "registry.terraform.io/carlpett/sops" {
   constraints = ">= 1.0.0"
   hashes = [
     "h1:++2JmC1ykEcRLHiB7kRhqq9kfxH3H28zWWCGYJt6xwE=",
+    "h1:Bxls7vaSoHFx5oLyCC4BKWkF9A24QyYI+LDR0xwjyBo=",
     "h1:HyIxpskyTiLdJhGFJYzCk45IsG7zMe3K+y7em3k23BE=",
+    "h1:znlUxdbGKlHDWA0hZ4E2nEW4h2x0fTsQD4pau4+KyRw=",
     "zh:4df8dea170a4cd926ca6ef0b9fa6fd1d8c1fa9bc9e78333d544a74c24e269cf9",
     "zh:5cf661333ec5d5cce3b7c0fc399052cf8f8c50f6cb0a50f5aec2f91d83685e1e",
     "zh:680616383404bc836a2d740a0dfae4691c18c8616f346e8fa795a1d790a2d888",
