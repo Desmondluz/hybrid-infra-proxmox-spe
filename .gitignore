@@ -84,3 +84,7 @@ packer_cache/
 
 # -------- pre-commit --------
 .pre-commit-trash/
+
+# Plans Terraform binaires (generes par terraform plan -out=...)
+**/tfplan
+**/tfplan.*

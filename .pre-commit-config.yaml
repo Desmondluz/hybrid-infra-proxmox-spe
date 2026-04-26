@@ -27,18 +27,15 @@ repos:
       # terraform_tflint volontairement désactivé en pré-commit : il exige le
       # binaire `tflint` localement et un `tflint --init` (téléchargement de
       # plugins). Couverture déjà assurée par .github/workflows/terraform.yml
-      # job `tflint (terraform/<site>)`. Réactiver ici si on veut bloquer en
-      # local ; sinon laisser la CI faire foi.
+      # job `tflint (terraform/<site>)`.
 
-  - repo: https://github.com/ansible/ansible-lint
-    rev: v24.2.0
-    hooks:
-      - id: ansible-lint
-        files: ^(ansible/|\.github/workflows/ansible\.yml)
-        # ansible-lint a besoin d'ansible-core pour parser les playbooks ;
-        # le pin doit rester compatible avec requirements-dev.txt.
-        additional_dependencies:
-          - "ansible-core>=2.16,<2.17"
+  # ansible-lint volontairement désactivé en pré-commit : le hook tourne
+  # dans un venv isolé qui ne voit pas les collections galaxy installées
+  # via `ansible/requirements.yml`, ce qui produit des faux positifs
+  # `syntax-check[unknown-module]` à chaque commit. Couverture déjà
+  # assurée par `.github/workflows/ansible.yml` (job `lint` qui installe
+  # les collections d'abord, puis `syntax-check` matrix par site).
+  # Pour lancer ansible-lint en local : `cd ansible && ansible-lint`.
 
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1

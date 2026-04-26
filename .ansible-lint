@@ -1,0 +1,62 @@
+---
+# ansible-lint — configuration projet CIA / GR46.
+# Doc : https://ansible.readthedocs.io/projects/lint/configuring/
+#
+# Politique : on lint le code (best-practices, FQCN, idempotence) mais on
+# délègue le `syntax-check` au job matrix dédié dans
+# `.github/workflows/ansible.yml` (qui installe d'abord les collections via
+# `ansible-galaxy collection install -r ansible/requirements.yml`).
+#
+# Le hook pre-commit ansible-lint tourne dans un venv isolé qui ne voit pas
+# les collections galaxy ; on les mocke ici pour qu'il ne plante pas sur
+# les imports dynamiques. Le linting réel se fait dans le workflow CI.
+
+profile: moderate
+
+exclude_paths:
+  - .ansible/
+  - .cache/
+  - .git/
+  - .github/
+  - terraform/
+  - secrets/
+
+# Modules de collections externes — mockés pour que ansible-lint puisse
+# parser les playbooks sans avoir installé les collections (utile pour le
+# pre-commit hook isolé). Le job CI `lint` installe les vraies collections
+# et passe au-delà du mock.
+mock_modules:
+  - community.general.timezone
+  - community.docker.docker_compose_v2
+  - community.sops.load_vars
+  - netbox.netbox.nb_inventory
+  - pfsensible.core.pfsense_rule
+  - pfsensible.core.pfsense_alias
+
+# Rôles référencés depuis ansible/playbooks/*.yml — résolution faite via
+# `ansible/ansible.cfg` (`roles_path = roles/`). On les mocke pour le hook
+# pre-commit qui ne respecte pas le ANSIBLE_ROLES_PATH.
+mock_roles:
+  - common
+  - filebeat
+  - pfsense
+  - openvpn
+  - dns-forwarder
+  - netbox
+  - webapp
+  - elasticsearch
+  - kibana
+  - logstash
+  - bastion
+
+# Règles désactivées avec justification.
+skip_list:
+  - syntax-check        # couvert par job matrix dédié (workflow ansible.yml)
+  - galaxy[no-changelog] # rôles internes, pas de changelog Galaxy
+  - meta-no-info        # rôles internes, pas publiés sur Galaxy
+
+# Règles que l'on rétrograde de fatal à warning (politique projet).
+warn_list:
+  - experimental
+  - fqcn-builtins       # déjà appliqué dans 95% du code, transition douce
+  - role-name           # nos rôles utilisent des tirets (`dns-forwarder`)

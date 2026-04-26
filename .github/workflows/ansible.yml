@@ -24,6 +24,12 @@ jobs:
   lint:
     name: lint (ansible-lint + yamllint)
     runs-on: ubuntu-22.04
+    # ANSIBLE_ROLES_PATH et ANSIBLE_COLLECTIONS_PATH sont absolus pour
+    # contourner la logique par défaut d'ansible-lint qui préfixe le
+    # playbook_dir (`ansible/playbooks/roles/` au lieu de `ansible/roles/`).
+    env:
+      ANSIBLE_ROLES_PATH: ${{ github.workspace }}/ansible/roles
+      ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/ansible/.ansible/collections
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,7 +42,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
       - name: install collections
-        run: ansible-galaxy install -r ansible/requirements.yml
+        run: |
+          ansible-galaxy collection install \
+            -r ansible/requirements.yml \
+            -p ansible/.ansible/collections
       - name: yamllint
         run: yamllint -c .yamllint.yml ansible/
       - name: ansible-lint
@@ -51,6 +60,9 @@ jobs:
       fail-fast: false
       matrix:
         site: [siteA, siteB]
+    env:
+      ANSIBLE_ROLES_PATH: ${{ github.workspace }}/ansible/roles
+      ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/ansible/.ansible/collections
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -62,7 +74,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
-          ansible-galaxy install -r ansible/requirements.yml
+          ansible-galaxy collection install \
+            -r ansible/requirements.yml \
+            -p ansible/.ansible/collections
       - name: syntax-check playbooks
         working-directory: ansible
         run: |
