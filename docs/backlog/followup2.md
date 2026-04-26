@@ -65,8 +65,8 @@
 ### 2.6 CI/CD + qualité
 
 - [x] `.pre-commit-config.yaml` (gitleaks, lint, fmt)
-- [x] Workflows `terraform`, `ansible`
-- [ ] Workflow `security-scan` (tflint + checkov + gitleaks)
+- [x] Workflows `terraform`, `ansible`, `quality`
+- [x] Workflow `security-scan` (gitleaks + trufflehog + checkov + tfsec + shellcheck)
 - [x] Templates PR/Issue
 
 ---
