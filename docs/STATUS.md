@@ -2,7 +2,7 @@
 
 **Projet** : T-NSA-810-REP25 — Deployment and Securing of a Hybrid Infrastructure
 **Groupe** : GR46 · **École** : Epitech · **Année** : 2025-2026
-**Date de la photo** : 2026-04-25 · **Phase courante** : **FW2** (deuxième follow-up)
+**Date de la photo** : 2026-04-26 · **Phase courante** : **FW2** (deuxième follow-up — clôturé côté GR46, validation jury à venir)
 **Propriétaire du document** : GR46 · **Cadence de mise à jour** : à chaque jalon (FW1 / FW2 / FW3 / Final) et après chaque étape Terraform/Ansible significative
 
 ---
@@ -43,10 +43,10 @@ concrète et son owner.
 
 | Domaine | 📝 Code | 🚀 Live | Commentaire |
 |---|---|---|---|
-| Terraform IaC (modules + sites) | ✅ | 🟡 | Modules + siteA/siteB écrits ; apply Site B partiel (bridges OK, VMs clonées non bootées) |
-| Ansible (rôles + playbooks) | ✅ | ❌ | 11 rôles + 7 playbooks lintés ; jamais joués en runtime |
-| Configurations de référence (pfSense, OpenVPN, DNS, Elastic) | ✅ | ❌ | Configurations versionnées et auditables ; pas encore appliquées |
-| Site B (DEV nested VMware) | ✅ | 🟡 | Proxmox up, bridges déployés, VMs clonées, boot bloqué (nested virt) |
+| Terraform IaC (modules + sites) | ✅ | ✅ | Modules + siteA/siteB écrits ; **Site B applied live**, plan idempotent, state propre |
+| Ansible (rôles + playbooks) | ✅ | 🟡 | 11 rôles + 7 playbooks lintés + syntax-check CI vert ; apply réel reporté FW3 (volontaire — pas dans le scope FW2) |
+| Configurations de référence (pfSense, OpenVPN, DNS, Elastic) | ✅ | 🟡 | Configurations versionnées et auditables ; pfSense-s2 cloné depuis vraie image, configs OpenVPN/DNS appliquées en FW3 |
+| Site B (DEV nested VMware) | ✅ | ✅ | Proxmox up, bridges déployés, **3 VMs running**, pfsense-s2 cloné depuis VMID 9100 (vraie image pfSense) |
 | Site A (Epitech physique) | ✅ | ❌ | Code prêt ; déploiement physique programmé FW3 |
 | Tunnel OpenVPN site-à-site | ✅ | ❌ | Configs + role prêts ; nécessite les deux pfSense up |
 | NetBox (IPAM) | ✅ | ❌ | Rôle + seed script prêts ; nécessite services-s1 |
@@ -57,8 +57,11 @@ concrète et son owner.
 | CI/CD GitHub Actions | ✅ | ✅ | 4 workflows (terraform, ansible, quality, security-scan) verts |
 
 **TL;DR** : le **code et la doc sont à 94%** des critères d'évaluation, le
-**runtime à environ 30%**. Le blocage technique courant (nested virt
-VMware) est en cours de résolution ; aucun blocage sur le code lui-même.
+**runtime à environ 55%** post-FW2 (Site B entièrement provisionné, 3 VMs
+running, secrets SOPS+age opérationnels, CI verte). Les blocages B1
+(nested virt) et B4 (template pfSense absent) sont **résolus**. Le runtime
+restant (Ansible apply, NetBox, Elastic, tunnel VPN, Site A physique) est
+le scope explicite de FW3.
 
 ---
 
@@ -72,17 +75,18 @@ VMware) est en cours de résolution ; aucun blocage sur le code lui-même.
 | Module `network` | ✅ | `terraform/modules/network/` — provisionne les bridges Linux Proxmox |
 | Module `netbox-records` | ✅ | `terraform/modules/netbox-records/` — préfixes/VLAN dans NetBox (activable via `netbox_enabled`) |
 | Stack `terraform/siteA/` | ✅ code | `main.tf`, `vms.tf`, `variables.tf`, `outputs.tf`, `terraform.tfvars.example`, `netbox.tf.disabled` |
-| Stack `terraform/siteB/` | 🟡 | Mêmes fichiers, plus `terraform.tfvars` réel + `terraform.tfstate` (28 KB après les premiers apply) |
+| Stack `terraform/siteB/` | ✅ | Mêmes fichiers, plus `terraform.tfvars` réel + `terraform.tfstate` (~32 KB après l'apply Phase 4) |
 | `terraform init` siteA | ⏳ | Sera lancé en début FW3 quand le Proxmox Site A sera accessible |
 | `terraform init` siteB | ✅ | `.terraform/` peuplé, `.terraform.lock.hcl` versionné |
 | `terraform apply` siteB — bridges (`vmbr0`, `vmbr146`) | ✅ | `vmbr0` importé (ne pas casser la management 192.168.208.50/24), `vmbr146` créé |
-| `terraform apply` siteB — clone des 3 VMs | 🟡 | VMID 100 (services-s2), 101 (pfsense-s2), 102 (bastion-s2) clonés, boot bloqué |
+| `terraform apply` siteB — clone des 3 VMs | ✅ | VMID 100 (services-s2), 101 (pfsense-s2 depuis 9100), 102 (bastion-s2) clonés et **running** |
+| `terraform plan` idempotent post-apply | ✅ | "No changes. Your infrastructure matches the configuration." |
 
-**Blocage actuel** : nested virt VMware désactivée (Hyper-V Windows
-monopolise VT-x). Procédure de débloquage en cours :
-conversion WSL2→WSL1 + désactivation `Microsoft-Hyper-V-All` + Memory
-Integrity → reboot Windows → cocher *Virtualize Intel VT-x/EPT* dans
-VMware Workstation → reboot Proxmox → retry `terraform apply`.
+**Aucun blocage Terraform actif post-FW2.** Le `terraform plan`
+post-apply est idempotent et le module `proxmox-vm` supporte désormais
+les images sans cloud-init via 3 toggles (`enable_cloud_init`,
+`enable_qemu_agent`, `os_type`) — extension nécessaire pour pfSense
+(FreeBSD), 100 % rétro-compatible avec les VMs Linux.
 
 ### 2. Ansible
 
@@ -93,8 +97,8 @@ VMware Workstation → reboot Proxmox → retry `terraform apply`.
 | Group_vars `all.yml` (74 L), `siteA.yml` (32 L), `siteB.yml` (31 L) | ✅ code | Variables centralisées, segmentations LAN/ADMIN/SERVICES, paramètres VPN |
 | 11 rôles (`common`, `bastion`, `pfsense`, `openvpn`, `netbox`, `dns-forwarder`, `elasticsearch`, `kibana`, `logstash`, `filebeat`, `webapp`) | ✅ code | Tasks + handlers + templates + meta + defaults selon le rôle |
 | 7 playbooks (`siteA`, `siteB`, `vpn`, `bastion`, `elastic`, `killswitch`, `site`) | ✅ code | Lint OK (`ansible-lint`, `yamllint` en CI) |
-| `ansible-playbook --syntax-check` siteA/siteB | ✅ | Passe en CI |
-| Exécution **réelle** d'un playbook contre une VM | ❌ | Bloqué par l'absence de VM bootée (cf. blocage Site B) |
+| `ansible-playbook --syntax-check` siteA/siteB | ✅ | Passe en CI (workflow `ansible.yml` vert) |
+| Exécution **réelle** d'un playbook contre une VM | ⏳ | Volontairement reporté FW3 — VMs running mais l'apply complet (pfSense + bastion + DNS + Filebeat) est dans le scope FW3 |
 
 ### 3. Site A (on-premise — Epitech physique)
 
@@ -111,14 +115,14 @@ Pré-requis Site A : accès physique Proxmox Epitech, template Ubuntu cloud-init
 
 | Élément | État | Détail |
 |---|---|---|
-| Hôte Proxmox VE 8.x (50 GB → 48 GB après extension à chaud, 8 GB RAM, nested virt à activer) | 🟡 | Disque étendu via `growpart` + `pvresize` + `lvextend` + `resize2fs`. Nested virt en attente du reboot Windows post-Hyper-V-off |
+| Hôte Proxmox VE 8.4 (50 GB → 48 GB après extension à chaud, 8 GB RAM, nested virt active) | ✅ | Disque étendu via `growpart` + `pvresize` + `lvextend` + `resize2fs`. KVM disponible (`/dev/kvm`) |
 | Bridge `vmbr0` (WAN/management 192.168.208.50/24) | ✅ | Importé dans le state Terraform sans rupture de management |
 | Bridge `vmbr146` (LAN isolé GR46, vlan-aware) | ✅ | Créé par Terraform |
-| VM `pfsense-s2` (VMID 101) | 🟡 | Clonée, **non bootée** (KVM indisponible) |
-| VM `bastion-s2` (VMID 102) | 🟡 | Clonée, **non bootée** |
-| VM `services-s2` (VMID 100) | 🟡 | Clonée, **non bootée** |
+| VM `pfsense-s2` (VMID 101) | ✅ | Clonée depuis VMID 9100 (vraie image pfSense), **running**, IP 192.168.0.1/24 |
+| VM `bastion-s2` (VMID 102) | ✅ | Clonée depuis VMID 9000 (Ubuntu cloud-init), **running** |
+| VM `services-s2` (VMID 100) | ✅ | Clonée depuis VMID 9000, **running** |
 | Template Ubuntu 22.04 cloud-init (VMID 9000, 2.2 GB) | ✅ | Présent et utilisable |
-| Template pfSense (VMID 9100) | ❌ | Tâche P1.10 ; en attendant, `pfsense_template_id = 9000` (placeholder) |
+| Template pfSense (VMID 9100) | ✅ | Créé manuellement (pfSense 2.7 ISO + import disque), `pfsense_template_id = 9100` |
 
 ### 5. Sécurité
 
@@ -173,12 +177,11 @@ Pré-requis Site A : accès physique Proxmox Epitech, template Ubuntu cloud-init
 
 ## Blocages connus et workarounds
 
-### B1 — Nested virtualization VMware Workstation 🟡
+### B1 — Nested virtualization VMware Workstation 🟢 résolu
 
-- **Symptôme** : `qm start` retourne *KVM virtualisation configured, but not available*.
-- **Cause** : Hyper-V (`hypervisorlaunchtype = Auto`) + WSL2 + VirtualMachinePlatform monopolisent VT-x sur le hôte Windows.
-- **Plan** : conversion WSL2→WSL1 (préserve le tooling Linux), désactivation Hyper-V/VirtualMachinePlatform, désactivation Memory Integrity, reboot Windows, activation *Virtualize Intel VT-x/EPT* dans VMware. Réversible en quelques commandes après FW3.
-- **Owner** : Desmond · **ETA** : <1h après reboot Windows.
+- **Symptôme initial** : `qm start` retournait *KVM virtualisation configured, but not available*.
+- **Cause** : Hyper-V + WSL2 + VirtualMachinePlatform monopolisaient VT-x.
+- **Workaround appliqué** : conversion WSL2→WSL1, `bcdedit /set hypervisorlaunchtype off`, désactivation `VirtualMachinePlatform` + `Microsoft-Hyper-V-All` + Memory Integrity, reboot Windows, activation *Virtualize Intel VT-x/EPT* dans VMware Workstation. KVM disponible (`/dev/kvm`), les 3 VMs Site B démarrent correctement.
 
 ### B2 — Storage Proxmox initial trop petit 🟢 résolu
 
@@ -190,11 +193,10 @@ Pré-requis Site A : accès physique Proxmox Epitech, template Ubuntu cloud-init
 - **Cause** : VM Proxmox VMware configurée à 2 GB. Insuffisant pour démarrer 3 VMs invitées (2+1+4 = 7 GB).
 - **Workaround appliqué** : passage à 8 GB RAM dans VMware Workstation.
 
-### B4 — Template pfSense (VMID 9100) absent ⏳
+### B4 — Template pfSense (VMID 9100) absent 🟢 résolu
 
-- **Symptôme** : `pfsense_template_id = 9000` (placeholder Ubuntu) → `pfsense-s2` clone une image Ubuntu, pas pfSense.
-- **Plan** : création manuelle du template pfSense 2.7 (VMID 9100) sur Proxmox, ISO vanille + import disque. Tâche P1.10.
-- **Owner** : Desmond · **ETA** : 1 sprint FW2.
+- **Symptôme initial** : `pfsense_template_id = 9000` clonait une image Ubuntu, pas pfSense.
+- **Workaround appliqué** : création manuelle du template pfSense 2.7 (VMID 9100) sur Proxmox (ISO vanille + import disque). Module `proxmox-vm` étendu avec 3 toggles (`enable_cloud_init=false`, `enable_qemu_agent=false`, `os_type="other"`) pour gérer FreeBSD. `pfsense_template_id` passé à 9100, `pfsense-s2` re-cloné en Phase 4.
 
 ### B5 — DRP exercice live non joué 🟡
 
@@ -202,23 +204,27 @@ Pré-requis Site A : accès physique Proxmox Epitech, template Ubuntu cloud-init
 - **Plan** : `chaos-drill.yml` à écrire en FW3 + capture vidéo de l'exécution.
 - **Owner** : GR46 · **ETA** : FW3.
 
+### B6 — Validation Valentin pas encore obtenue 🟡
+
+- **Cause** : créneau Valentin pas posé en FW2 (Phase 7 reportée par décision GR46).
+- **Plan** : demander une validation async par écrit à Valentin sur la fenêtre démo FW2 + planifier session live FW3.
+- **Owner** : Desmond · **ETA** : avant FW3 kickoff.
+
 ---
 
-## Prochaines actions concrètes (ordre d'exécution)
+## Prochaines actions concrètes (ordre d'exécution post-FW2)
 
 | # | Action | Pré-requis | Owner | ETA |
 |---|---|---|---|---|
-| 1 | Désactiver Hyper-V Windows + bascule WSL2→WSL1 + reboot | Accès admin Windows | Desmond | <1 jour |
-| 2 | Activer *Virtualize Intel VT-x/EPT* VMware Proxmox + reboot Proxmox | (1) | Desmond | <30 min |
-| 3 | Vérifier `ls /dev/kvm` + retry `terraform apply` siteB | (2) | Desmond | <15 min |
-| 4 | Vérifier SSH `admin@192.168.0.10` (bastion-s2 cloud-init) | (3) | Desmond | <15 min |
-| 5 | Créer template pfSense VMID 9100 + corriger `pfsense_template_id` | (3) | Desmond | 1 sprint |
-| 6 | Re-clone `pfsense-s2` depuis 9100, apply pfSense via Ansible | (5) | Desmond | 1 sprint |
-| 7 | Demande accès physique Proxmox Site A (Epitech) | Validation Valentin | Desmond + GR46 | FW3 |
-| 8 | `terraform apply` siteA + `ansible-playbook playbooks/siteA.yml` | (7) | GR46 | FW3 |
-| 9 | Monter le tunnel OpenVPN site-à-site (`vpn.yml`) | (6) + (8) | GR46 | FW3 |
-| 10 | Déployer NetBox + Elastic stack Site A | (8) | GR46 | FW3 |
-| 11 | Jouer DRP exercice live + capturer vidéo | (10) | GR46 | FW3/Final |
+| 1 | Démo FW2 devant le jury (storyboard `docs/demo/fw2-storyboard.md`) | tag `fw2-2026-04` | Desmond | semaine courante |
+| 2 | Validation async Valentin sur livrables FW2 | — | Desmond | <1 semaine |
+| 3 | Apply Ansible siteB réel (`siteB.yml`) sur les 3 VMs running | démo passée | Desmond | début FW3 |
+| 4 | Demande accès physique Proxmox Site A (Epitech) | Validation Valentin | Desmond + GR46 | FW3 |
+| 5 | `terraform apply` siteA + `ansible-playbook playbooks/siteA.yml` | (4) | GR46 | FW3 |
+| 6 | Monter le tunnel OpenVPN site-à-site (`vpn.yml`) | (3) + (5) | GR46 | FW3 |
+| 7 | Déployer NetBox + Elastic stack Site A | (5) | GR46 | FW3 |
+| 8 | Jouer DRP exercice live + capturer vidéo | (7) | GR46 | FW3/Final |
+| 9 | Rotation password `terraform@pve` post-démo (compte de démo) | démo passée | Desmond | <24h après démo |
 
 ---
 
@@ -226,16 +232,17 @@ Pré-requis Site A : accès physique Proxmox Epitech, template Ubuntu cloud-init
 
 ```text
 Hôte Windows (DESMOND)
-└── VMware Workstation 17
-    └── VM proxmox-s1   (PVE 8.x — 192.168.208.50)
-        ├── Storage local : 48 GB / 41 GB libres
+└── VMware Workstation 17 (VT-x/EPT exposé)
+    └── VM proxmox-s1   (PVE 8.4 — 192.168.208.50)
+        ├── Storage local : 48 GB / ~36 GB libres
         ├── RAM : 8 GB
         ├── Bridge vmbr0 (WAN, ports=ens33, IP=192.168.208.50/24)
-        ├── Bridge vmbr146 (LAN GR46, vlan-aware)
+        ├── Bridge vmbr146 (LAN GR46, vlan-aware, VLAN 20/21/22)
         ├── Template VMID 9000 (Ubuntu 22.04 cloud-init, 2.2 GB)
-        ├── VM 100 services-s2 (clonée, stopped)
-        ├── VM 101 pfsense-s2 (clonée, stopped — sera re-clonée depuis VMID 9100)
-        └── VM 102 bastion-s2  (clonée, stopped)
+        ├── Template VMID 9100 (pfSense 2.7, ~1.6 GB)
+        ├── VM 100 services-s2 (running, 192.168.10.20)
+        ├── VM 101 pfsense-s2  (running, 192.168.0.1, depuis VMID 9100)
+        └── VM 102 bastion-s2  (running, 192.168.0.10:2222)
 ```
 
 ---
@@ -253,4 +260,4 @@ Hôte Windows (DESMOND)
 ---
 
 *GR46 — CIA Epitech 2025-2026 — Document vivant, mis à jour à chaque jalon.*
-*Dernière revue : 2026-04-25.*
+*Dernière revue : 2026-04-26 (clôture FW2 côté GR46).*

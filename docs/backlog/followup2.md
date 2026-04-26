@@ -3,6 +3,8 @@
 **Date cible** : avril 2026
 **Groupe** : GR46
 **Projet** : Deployment & Securing of a Hybrid Infrastructure with Proxmox
+**Statut** : ✅ **Clôturé côté GR46 le 2026-04-26** (tag `fw2-2026-04`).
+Validation Valentin reportée (reportée FW3, voir §3 et `STATUS.md` B6).
 
 ---
 
@@ -17,7 +19,7 @@
 | Elasticsearch Site 1                             | ✅ Fait    | `ansible/roles/elasticsearch/` + Kibana          |
 | Bastion Site 2 + MFA                             | ✅ Fait    | `ansible/roles/bastion/` + `setup-mfa.sh.j2`     |
 | DNS forwarding inter-sites                       | ✅ Fait    | `ansible/roles/dns-forwarder/templates/`         |
-| Validation Valentin                              | 🟡 À faire | Créneau à caler semaine du 21/04                 |
+| Validation Valentin                              | 🟡 Reporté | Demandé en async ; session live planifiée FW3    |
 
 ---
 
@@ -97,6 +99,9 @@ Durée 15 min, structure :
 5. **Onboarding Site C** (3 min) — walkthrough `onboarding-new-site.md`.
 6. **Q&R** (2 min).
 
+**Storyboard détaillé** : [`docs/demo/fw2-storyboard.md`](../demo/fw2-storyboard.md).
+**Plan B (captures de pré-prod)** : [`docs/demo/fw2-backup-evidence.md`](../demo/fw2-backup-evidence.md).
+
 ---
 
 ## 5. Risques identifiés
@@ -111,10 +116,29 @@ Durée 15 min, structure :
 
 ## 6. Todo post-FW2
 
-- Jouer scénario DRP #1 (perte VM) avec Valentin présent
-- Intégrer retours Silya/Valentin dans `docs/backlog/followup3.md`
-- Upgrade Terraform → plan migration OpenTofu
+- [ ] Obtenir validation Valentin async sur les livrables FW2
+- [ ] Apply Ansible siteB réel (`siteB.yml`) sur les 3 VMs running
+- [ ] Rotation password `terraform@pve` post-démo (compte de démo)
+- [ ] Régénération clé age si la session de démo a été enregistrée
+- [ ] Jouer scénario DRP #1 (perte VM) avec Valentin présent
+- [ ] Intégrer retours Silya/Valentin dans `docs/backlog/followup3.md`
+- [ ] Upgrade Terraform → plan migration OpenTofu
 
 ---
 
-*GR46 — CIA Epitech 2025-2026*
+## 7. Clôture FW2 — preuves auditables
+
+| Phase | Livrable | Preuve dépôt |
+|-------|----------|--------------|
+| Phase 1 — CI | 4 workflows verts | badge README + onglet Actions |
+| Phase 2 — Nested virt | KVM disponible | `STATUS.md` B1 résolu |
+| Phase 3 — Template pfSense | VMID 9100 | `STATUS.md` §4 + B4 résolu |
+| Phase 4 — Apply siteB live | 3 VMs running, plan idempotent | `terraform/siteB/terraform.tfstate` |
+| Phase 5 — Ansible siteB verified | syntax-check vert | workflow `ansible.yml` |
+| Phase 6 — Storyboard démo | doc + backup | `docs/demo/fw2-*.md` |
+| Phase 7 — Validation Valentin | 🟡 reportée FW3 | `STATUS.md` B6 |
+| Phase 8 — Clôture FW2 | tag git + STATUS + backlog | `git tag fw2-2026-04` |
+
+---
+
+*GR46 — CIA Epitech 2025-2026 — FW2 clôturé 2026-04-26.*
