@@ -99,8 +99,7 @@ Durée 15 min, structure :
 5. **Onboarding Site C** (3 min) — walkthrough `onboarding-new-site.md`.
 6. **Q&R** (2 min).
 
-**Storyboard détaillé** : [`docs/demo/fw2-storyboard.md`](../demo/fw2-storyboard.md).
-**Plan B (captures de pré-prod)** : [`docs/demo/fw2-backup-evidence.md`](../demo/fw2-backup-evidence.md).
+**Walkthrough avec preuves** : [`docs/demo/fw2-demo-walkthrough.md`](../demo/fw2-demo-walkthrough.md).
 
 ---
 
@@ -135,7 +134,7 @@ Durée 15 min, structure :
 | Phase 3 — Template pfSense | VMID 9100 | `STATUS.md` §4 + B4 résolu |
 | Phase 4 — Apply siteB live | 3 VMs running, plan idempotent | `terraform/siteB/terraform.tfstate` |
 | Phase 5 — Ansible siteB verified | syntax-check vert | workflow `ansible.yml` |
-| Phase 6 — Storyboard démo | doc + backup | `docs/demo/fw2-*.md` |
+| Phase 6 — Walkthrough démo + captures | doc + preuves inline | `docs/demo/fw2-demo-walkthrough.md` |
 | Phase 7 — Validation Valentin | 🟡 reportée FW3 | `STATUS.md` B6 |
 | Phase 8 — Clôture FW2 | tag git + STATUS + backlog | `git tag fw2-2026-04` |
 

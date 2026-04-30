@@ -154,7 +154,7 @@ Pré-requis Site A : accès physique Proxmox Epitech, template Ubuntu cloud-init
 | `README.md` | 228 | ✅ — badges CI, architecture, quickstart, runbooks |
 | `CONTRIBUTING.md` | 98 | ✅ — Conventional Commits, pre-commit, PR template |
 | `CRITERES.md` | ~270 | ✅ — 32+4 critères + colonne État de preuve |
-| `CIA_roadmap_complete.md` | 507 | ✅ — phases, jalons, livrables |
+| Gantt PowerPoint (`docs/gantt/`) | — | ✅ — 7 phases fév→juil 2026, jalons FW1/FW2/FW3/Final |
 | `docs/tech-choices.md` (ADR) | 133 | ✅ — 14 décisions documentées |
 | `docs/onboarding-new-site.md` | 135 | ✅ — golden path Site C |
 | `docs/access-matrix.md` | 85 | ✅ — matrice accès LAN/ADMIN/SERVICES |
@@ -216,7 +216,7 @@ Pré-requis Site A : accès physique Proxmox Epitech, template Ubuntu cloud-init
 
 | # | Action | Pré-requis | Owner | ETA |
 |---|---|---|---|---|
-| 1 | Démo FW2 devant le jury (storyboard `docs/demo/fw2-storyboard.md`) | tag `fw2-2026-04` | Desmond | semaine courante |
+| 1 | Démo FW2 devant le jury (s'appuyer sur `docs/demo/fw2-demo-walkthrough.md`) | tag `fw2-2026-04` | Desmond | semaine courante |
 | 2 | Validation async Valentin sur livrables FW2 | — | Desmond | <1 semaine |
 | 3 | Apply Ansible siteB réel (`siteB.yml`) sur les 3 VMs running | démo passée | Desmond | début FW3 |
 | 4 | Demande accès physique Proxmox Site A (Epitech) | Validation Valentin | Desmond + GR46 | FW3 |
@@ -251,7 +251,7 @@ Hôte Windows (DESMOND)
 
 - Architecture cible : [`README.md`](../README.md) · diagrammes : [`docs/architecture/`](architecture/)
 - Conformité critères : [`CRITERES.md`](../CRITERES.md)
-- Roadmap & Gantt : [`CIA_roadmap_complete.md`](../CIA_roadmap_complete.md) · [`docs/gantt/`](gantt/)
+- Roadmap & Gantt : [`docs/gantt/`](gantt/)
 - Backlog par follow-up : [`docs/backlog/followup1.md`](backlog/followup1.md) · [`followup2.md`](backlog/followup2.md) · [`followup3.md`](backlog/followup3.md)
 - Runbooks opérationnels : [`docs/runbooks/`](runbooks/)
 - Plan de reprise d'activité : [`docs/drp/drp.md`](drp/drp.md)
