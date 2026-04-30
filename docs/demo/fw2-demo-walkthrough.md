@@ -528,14 +528,16 @@ que la rotation/onboarding est documentée.
 
 **Comment reproduire**
 
-1. Terminal PowerShell :
+Étapes :
 
-```powershell
-cd C:\Users\DELL\Desktop\T-NSA-810-REP25\hybrid-infra-proxmox-spe
-type secrets\siteB.enc.yml
-```
+1. Ouvrir un terminal PowerShell et lancer :
 
-Attendu : YAML avec valeurs chiffrées (`ENC[AES256_GCM,...]`).
+   ```powershell
+   cd C:\Users\DELL\Desktop\T-NSA-810-REP25\hybrid-infra-proxmox-spe
+   type secrets\siteB.enc.yml
+   ```
+
+   Sortie attendue : YAML avec valeurs chiffrées (`ENC[AES256_GCM,...]`).
 
 2. Capturer le terminal entier.
 3. Sauvegarder sous : `docs/demo/captures/11-secrets-encrypted.png`.

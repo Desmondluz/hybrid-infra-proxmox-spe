@@ -66,6 +66,11 @@ secrets/plaintext/
 Thumbs.db
 desktop.ini
 
+# -------- MS Office temp/lock files --------
+~$*.docx
+~$*.xlsx
+~$*.pptx
+
 # -------- Build / dist --------
 dist/
 build/
