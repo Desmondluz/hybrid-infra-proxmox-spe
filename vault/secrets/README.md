@@ -1,3 +1,19 @@
+DO NOT STORE REAL SECRETS HERE
+
+This folder is for sample placeholder files only to illustrate how `seed-secrets.sh` reads files.
+
+Structure (example)
+
+secrets/
+  openvpn/
+    ca.crt
+    server.crt
+    server.key
+  bastion/
+    id_rsa
+    id_rsa.pub
+
+Keep real secrets in Vault only. This folder may be kept empty in the repository.
 # vault/secrets/
 
 Ce dossier contient des **exemples de structure** et des **placeholders**
