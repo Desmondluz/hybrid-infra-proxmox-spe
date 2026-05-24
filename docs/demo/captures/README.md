@@ -19,7 +19,7 @@ Captures d'écran et exports utilisés comme preuves dans
 | `10-playbook-killswitch.png` | 3.3 | VS Code (`killswitch.yml`) |
 | `11-secrets-encrypted.png` | 3.4 | Terminal `type secrets\siteB.enc.yml` |
 | `12-ci-actions-green.png` | 4.1 | GitHub Actions tab |
-| `13-pre-commit-passing.png` | 4.2 | Terminal `pre-commit run --all-files` |
+| (cap 13 retirée — preuve absorbée dans cap 12 via workflow `quality.yml`) | 4.2 | — |
 | `14-security-scan-workflow.png` | 4.3 | VS Code (`security-scan.yml`) |
 | `15-onboarding-new-site.png` | 5.1 | VS Code preview MD |
 | `16-runbook-killswitch.png` | 5.2 | VS Code preview MD |

@@ -1,0 +1,149 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "fw*-*"        # fw1-2026-03, fw2-2026-04, fw3-2026-06, …
+      - "final-*"      # final-2026-07 (Keynote finale)
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag existant à publier en release (ex: fw2-2026-04)"
+        required: true
+        type: string
+
+permissions:
+  contents: write    # nécessaire pour créer la release
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false  # ne pas annuler une release en cours
+
+jobs:
+  publish:
+    name: publish release ${{ github.ref_name }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout (full history for changelog)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Resolve tag name
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "name=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Resolved tag: ${TAG}"
+
+      - name: Find previous release tag
+        id: prev
+        run: |
+          # Trouve le tag fw*/final-* précédant celui-ci (ordre par création)
+          CURRENT="${{ steps.tag.outputs.name }}"
+          PREV=$(git tag --sort=-creatordate \
+            | grep -E '^(fw|final)' \
+            | grep -v "^${CURRENT}$" \
+            | head -n 1 \
+            || true)
+          if [ -z "${PREV}" ]; then
+            echo "Aucun tag précédent — premier follow-up."
+            PREV=$(git rev-list --max-parents=0 HEAD | head -n 1)
+          fi
+          echo "previous=${PREV}" >> "$GITHUB_OUTPUT"
+          echo "Previous reference: ${PREV}"
+
+      - name: Generate changelog (Conventional Commits)
+        id: changelog
+        run: |
+          CURRENT="${{ steps.tag.outputs.name }}"
+          PREV="${{ steps.prev.outputs.previous }}"
+
+          echo "## Changements depuis \`${PREV}\` → \`${CURRENT}\`" > /tmp/changelog.md
+          echo "" >> /tmp/changelog.md
+          echo "_Build généré automatiquement le $(date -u +%Y-%m-%dT%H:%M:%SZ)._" >> /tmp/changelog.md
+          echo "" >> /tmp/changelog.md
+
+          # Regroupage par préfixe Conventional Commits
+          add_section() {
+            local TITLE="$1"
+            local PATTERN="$2"
+            COMMITS=$(git log --pretty=format:"- %s (%h)" "${PREV}..${CURRENT}" 2>/dev/null \
+              | grep -iE "^- (${PATTERN}):" \
+              || true)
+            if [ -n "${COMMITS}" ]; then
+              echo "### ${TITLE}" >> /tmp/changelog.md
+              echo "${COMMITS}" >> /tmp/changelog.md
+              echo "" >> /tmp/changelog.md
+            fi
+          }
+
+          add_section "Fonctionnalités (feat)"        "feat"
+          add_section "Corrections (fix)"             "fix"
+          add_section "Documentation (docs)"          "docs"
+          add_section "CI / Build (ci|build|chore)"   "ci|build|chore"
+          add_section "Refactoring (refactor)"        "refactor"
+          add_section "Tests (test)"                  "test"
+          add_section "Performance (perf)"            "perf"
+          add_section "Opérations (ops)"              "ops"
+          add_section "Sécurité (security)"           "sec|security"
+
+          # Bloc "Other" pour les commits qui ne suivent pas la convention
+          OTHER=$(git log --pretty=format:"- %s (%h)" "${PREV}..${CURRENT}" 2>/dev/null \
+            | grep -vEi "^- (feat|fix|docs|ci|build|chore|refactor|test|perf|ops|sec|security):" \
+            || true)
+          if [ -n "${OTHER}" ]; then
+            echo "### Autres" >> /tmp/changelog.md
+            echo "${OTHER}" >> /tmp/changelog.md
+            echo "" >> /tmp/changelog.md
+          fi
+
+          # Statistiques
+          STATS=$(git diff --shortstat "${PREV}..${CURRENT}" 2>/dev/null || echo "—")
+          echo "### Statistiques" >> /tmp/changelog.md
+          echo "" >> /tmp/changelog.md
+          echo "- ${STATS}" >> /tmp/changelog.md
+          echo "" >> /tmp/changelog.md
+
+          # Pointeurs vers la doc clé
+          echo "### Documentation associée" >> /tmp/changelog.md
+          echo "" >> /tmp/changelog.md
+          echo "- [\`CRITERES.md\`](CRITERES.md) — état des 33 critères d'évaluation" >> /tmp/changelog.md
+          echo "- [\`docs/STATUS.md\`](docs/STATUS.md) — snapshot runtime de l'infra" >> /tmp/changelog.md
+          echo "- [\`docs/backlog/\`](docs/backlog/) — backlogs par follow-up" >> /tmp/changelog.md
+          if [ -f "docs/demo/fw2-demo-walkthrough.md" ]; then
+            echo "- [\`docs/demo/fw2-demo-walkthrough.md\`](docs/demo/fw2-demo-walkthrough.md) — walkthrough avec preuves" >> /tmp/changelog.md
+          fi
+
+          # Émet le contenu dans le job summary
+          cat /tmp/changelog.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Resolve release title
+        id: title
+        run: |
+          TAG="${{ steps.tag.outputs.name }}"
+          case "${TAG}" in
+            fw1-*)   TITLE="Follow-up 1 — Scoping (${TAG#fw1-})" ;;
+            fw2-*)   TITLE="Follow-up 2 — First Building Blocks (${TAG#fw2-})" ;;
+            fw3-*)   TITLE="Follow-up 3 — Beta (${TAG#fw3-})" ;;
+            final-*) TITLE="Keynote finale (${TAG#final-})" ;;
+            *)       TITLE="Release ${TAG}" ;;
+          esac
+          echo "value=${TITLE}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: ${{ steps.title.outputs.value }}
+          body_path: /tmp/changelog.md
+          draft: false
+          prerelease: ${{ startsWith(steps.tag.outputs.name, 'fw') }}
+          make_latest: ${{ startsWith(steps.tag.outputs.name, 'final-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -588,35 +588,32 @@ qui garantit que le code marche au-delà du laptop Windows du dev. Voir
 définitions :
 [`.github/workflows/`](../../.github/workflows/).
 
-### 4.2 Pre-commit local — toutes les hooks passent
+### 4.2 Pre-commit hooks — qualité enforced via CI
 
-**Objectif** : prouver que la même barrière qualité tourne en local
-**avant** le push.
+**Objectif** : prouver que la même barrière qualité (pre-commit) tourne
+sur chaque push GitHub avant la merge.
 
-**Comment reproduire**
+**Comment vérifier**
 
-```powershell
-cd C:\Users\DELL\Desktop\T-NSA-810-REP25\hybrid-infra-proxmox-spe
-pre-commit run --all-files
-```
+Voir le workflow `quality.yml` dans la capture 12 (CI Actions verte) —
+il invoque `pre-commit run --all-files` en CI Linux runner. La preuve
+est ainsi indépendante du laptop du développeur (peu importe l'OS du
+poste local).
 
-Attendu : toutes les hooks "Passed".
+**Hooks configurés**
 
-1. Capturer le terminal complet (de la commande au "Passed" final).
-2. Sauvegarder sous : `docs/demo/captures/13-pre-commit-passing.png`.
+Cf. [`.pre-commit-config.yaml`](../../.pre-commit-config.yaml) :
 
-**Preuve**
+- `trim-trailing-whitespace`, `end-of-file-fixer`
+- `check-yaml`, `check-json`, `check-merge-conflicts`
+- `detect-private-key` (refuse les clés privées en clair)
+- `terraform_fmt`, `terraform_validate`
+- `yamllint`, `markdownlint`
+- `gitleaks` (scan de fuites)
+- `shellcheck` (lint des scripts shell)
 
-![Pre-commit local toutes hooks passing](captures/13-pre-commit-passing.png)
-
-**Explication**
-
-Hooks installés (cf.
-[`.pre-commit-config.yaml`](../../.pre-commit-config.yaml)) :
-trim-trailing-whitespace, end-of-file-fixer, check-yaml, check-json,
-check-merge-conflicts, detect-private-key, terraform_fmt,
-terraform_validate, yamllint, markdownlint, gitleaks, shellcheck. Si une
-hook échoue, le commit est refusé localement.
+Si une hook échoue côté CI, la PR est bloquée → impossible de merger
+du code dégradé sur `main`.
 
 ### 4.3 Sécurité : gitleaks + trufflehog
 
