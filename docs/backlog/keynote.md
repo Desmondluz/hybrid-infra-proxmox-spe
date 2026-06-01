@@ -27,11 +27,16 @@
 - Slide : `networking/addressing.yml` rendu schéma IPAM.
 - Source de vérité : NetBox (démo rapide de l'UI avec sites + prefixes).
 
-### 4:00 — Démo — idempotence Terraform (2 min)
+### 4:00 — Démo — idempotence Terraform & promotion GitOps (2 min)
 
 - Terminal : `cd terraform/siteA && terraform plan`
 - Message : "No changes. Your infrastructure matches the configuration."
 - Ouvrir `modules/proxmox-vm/main.tf` — montrer que c'est générique.
+- **Récit migration dev → école** : le même code a été validé sur un
+  Proxmox imbriqué (dev jetable), puis promu sur le matériel réel de
+  l'école en ne changeant que `terraform.tfvars` + l'inventaire + les
+  secrets. Les 6 VMs pré-allouées ont été réconciliées via
+  `terraform import` — pas de "big bang", une convergence lisible.
 
 ### 6:00 — Démo — configuration Ansible (3 min)
 
@@ -43,8 +48,10 @@
 ### 9:00 — Sécurité (3 min)
 
 - **Bastion SSH MFA** (`roles/bastion`) : clef + TOTP.
-- **Vault + SOPS** (`.sops.yaml`, policies HCL) : secrets statiques vs.
-  dynamiques.
+- **Secrets chiffrés SOPS + age** (`.sops.yaml`) : aucun secret en clair
+  dans Git, chiffrement par destinataires (clé age), déchiffrement à la
+  volée par Ansible (`community.sops`). Couvre l'exigence "encryption" du
+  sujet sans dépendance à un serveur de secrets externe.
 - **Killswitch** : démo live.
   - Kibana dashboard "Egress" avant
   - `ansible-playbook killswitch.yml -e killswitch_state=active -e site=siteB`
@@ -76,12 +83,13 @@
 
 ### 18:00 — Bilan + retour d'expérience (1 min)
 
-- **Ce qui a marché** : modules réutilisables, NetBox comme source de
-  vérité, runbooks au fil de l'eau.
-- **Ce qui a coincé** : PKI pfSense → Vault, apprentissage des API
+- **Ce qui a marché** : méthode GitOps (dev nested → prod école sans
+  réécriture), modules réutilisables, NetBox comme source de vérité,
+  runbooks au fil de l'eau.
+- **Ce qui a coincé** : nested virt VMware (VT-x), apprentissage des API
   pfSense, arbitrage Terraform BSL vs. OpenTofu.
-- **Ce qu'on ferait différemment** : commencer par Vault + secrets dès
-  J+1, écrire runbooks en même temps que les rôles.
+- **Ce qu'on ferait différemment** : figer les secrets SOPS+age dès J+1,
+  écrire les runbooks en même temps que les rôles.
 
 ### 19:00 — Ouverture (1 min)
 

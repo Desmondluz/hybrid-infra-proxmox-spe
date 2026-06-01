@@ -1,115 +1,315 @@
-# CIA — GR46 — Préparation Follow-up 3
+# CIA — GR46 — Follow-up 3 (Beta) — Migration dev → école & configuration complète
 
 **Date cible** : juin 2026
-**Groupe** : GR46
-**Projet** : Deployment & Securing of a Hybrid Infrastructure with Proxmox
+**Groupe** : GR46 · **École** : Epitech · **Projet** : T-NSA-810-REP25 — Deployment & Securing of a Hybrid Infrastructure with Proxmox
 
 ---
 
-## 1. Rappel FW2
+## 1. Objectif du Follow-up 3
 
-Follow-up 2 (avril 2026) a validé :
+Le Follow-up 2 a validé toute la chaîne **en environnement de développement** :
+un Proxmox VE 8.4 imbriqué (nested VMware), trois VMs Site B *running*, secrets
+SOPS+age opérationnels, CI verte, et un `terraform plan` idempotent.
 
-- l'architecture à 2 sites + tunnel OpenVPN
-- les 7 runbooks et le DRP
-- la CI/CD Terraform + Ansible + security-scan
+Le Follow-up 3 a un objectif unique et mesurable :
 
-Retours Silya : à consigner ici après la session — format "date · auteur ·
-décision".
+> **Faire basculer l'infrastructure validée en dev vers l'environnement réel
+> fourni par l'école (2 hôtes Proxmox, 6 VMs pré-allouées) et terminer la
+> configuration complète des deux sites.**
 
----
+Concrètement, à la fin du FW3 :
 
-## 2. Objectifs FW3 — pré-final
-
-| Thème                            | Engagement FW3                                          |
-|----------------------------------|---------------------------------------------------------|
-| Exercice DRP réel                | Jouer scénario #1 (perte VM) en session, preuves vidéo  |
-| Monitoring avancé (bonus)        | Alerting Kibana → webhook Slack, SLO disponibilité VPN  |
-| Multi-site (bonus)               | POC Site C en staging (pas prod)                        |
-| Automatisation PKI OpenVPN       | Cron trimestriel rotation                               |
-| Hardening supplémentaire         | AppArmor profiles + USBGuard (si pertinent)             |
-| Performance Elastic              | Benchmark ingestion 10 k EPS, profiler bottleneck       |
+- les deux sites tournent sur le matériel Proxmox de l'école (plus de nested) ;
+- les 6 VMs pré-allouées sont **réconciliées** dans le state Terraform (`import`),
+  puis pilotées de façon déclarative ;
+- les playbooks Ansible sont **réellement appliqués** (plus seulement
+  `--syntax-check`) : pfSense, OpenVPN, NetBox, stack Elastic, bastion, DNS ;
+- le **tunnel OpenVPN site-à-site** est monté et visible dans Kibana ;
+- le tout reste piloté par Git (aucune action manuelle hors du dépôt).
 
 ---
 
-## 3. Delta depuis FW2
+## 2. Pourquoi le dev d'abord ? — la méthode GitOps
 
-### À réaliser
+Ce n'est pas un détour : c'est la méthode. L'infrastructure est traitée comme
+du logiciel. Git est la **source de vérité unique**, et toute promotion se fait
+par paramètres, pas par réécriture.
 
-- [ ] Script `scripts/rotate-openvpn.sh` + cron Ansible
-- [ ] Workflow GitHub `.github/workflows/cert-rotation.yml` (dispatch
-      manuel + planifié)
-- [ ] Alert rules Kibana (`infra/kibana/alerts.ndjson`) :
-      - `ssh_failure rate > 50/5m`
-      - `vpn_down for 5m`
-      - `es_cluster_status != green`
-- [ ] Webhook Slack via `xpack.actions.webhook`
-- [ ] Ansible playbook `playbooks/chaos-drill.yml` (nuke une VM, restore)
-- [ ] Script `scripts/bootstrap-new-site.sh` (invoqué depuis
-      `docs/onboarding-new-site.md`)
+**Principe.** Le même code (modules Terraform, rôles Ansible, pipelines
+Logstash) décrit les deux environnements. Ce qui change entre dev et prod n'est
+pas le code mais la **configuration injectée** : un fichier `*.tfvars`, un
+inventaire `*.ini`, un bundle de secrets chiffré. On valide à bas risque sur le
+dev, puis on rejoue exactement la même logique sur la prod en ne changeant que
+ces entrées.
 
-### En cours
+**Pourquoi c'est le bon choix ici.**
 
-- [ ] Revue du DRP après exercice réel
-- [ ] Intégration feedback qualité Silya/Valentin sur runbooks
+- **Réduction du risque.** Les 6 VMs de l'école sont une ressource partagée et
+  limitée. On ne « teste » pas dessus : on y déploie un code déjà éprouvé. Le
+  nested VMware a servi de bac à sable jetable où l'on a pu casser, recommencer,
+  étendre le module `proxmox-vm` pour pfSense (FreeBSD) sans aucune conséquence.
+- **Reproductibilité.** Un `terraform apply` et un `ansible-playbook` doivent
+  produire le même résultat partout. Le passage dev → prod *prouve* cette
+  promesse plutôt que de la postuler.
+- **Traçabilité.** Chaque écart entre l'état désiré (Git) et l'état réel
+  (Proxmox) est visible dans un `terraform plan`. La migration n'est pas un
+  « big bang » : c'est une convergence contrôlée, lisible diff par diff.
 
-### Abandonnés (justifier)
-
-- [ ] Migration OpenTofu → reportée, TF 1.5.x encore supporté par BSL
-      pour usage interne non-commercial.
-
----
-
-## 4. Métriques visées FW3
-
-| Métrique                                   | Cible             |
-|--------------------------------------------|-------------------|
-| Déploiement from-scratch (bootstrap)       | < 2 h             |
-| Rotation certs OpenVPN end-to-end          | < 10 min          |
-| Restauration pfSense config depuis git     | < 10 min          |
-| DRP #1 (perte VM services-s1)              | < 30 min          |
-| Taux de couverture linters (terraform/yaml)| 100 %             |
-| Temps moyen d'ingestion log → Kibana       | < 10 s            |
+**Conséquence pratique pour le FW3.** La migration n'est pas une réécriture.
+C'est : (a) pointer les providers vers les endpoints de l'école, (b) importer
+l'existant dans le state, (c) laisser Terraform et Ansible converger vers l'état
+déclaré, (d) ajouter ce qui manque encore (tunnel, observabilité).
 
 ---
 
-## 5. Démo prévue
+## 3. État de départ FW3
 
-1. **Rotation PKI live** (3 min) — `./scripts/rotate-openvpn.sh` → re-handshake
-   tunnel visible Kibana.
-2. **Chaos drill** (4 min) — `qm destroy <vmid>` → `terraform apply` →
-   `ansible-playbook` → service UP.
-3. **Alerting Slack** (3 min) — déclencher 60 SSH fails → message Slack.
-4. **Onboarding Site C** (4 min) — vrai terraform apply dans sandbox.
-5. **Q&R** (1 min).
+| Environnement | Rôle | État FW2 |
+|---|---|---|
+| Nested VMware (PVE 8.4, `192.168.208.50`) | Dev / bac à sable | 3 VMs running, validé, idempotent |
+| Hôte Proxmox école #1 (PVE 9.1.x) | Prod — Site A cible | 6 VMs pré-allouées, à réconcilier |
+| Hôte Proxmox école #2 (PVE 9.1.x) | Prod — Site B cible | inclus dans les 6 VMs, à réconcilier |
 
----
+> **À renseigner dès l'accès** (voir `ansible/inventories/prod.ini.example` et
+> `terraform/siteA/terraform.tfvars.example`) : endpoints API des deux nœuds,
+> noms de nœuds, VMIDs des 6 VMs, IPs de management, datastore, ID des templates.
 
-## 6. Dépendances externes
+Ce qui est **déjà prêt et ne change pas** : les modules Terraform, les 11 rôles
+Ansible, les pipelines Logstash, les configs pfSense/OpenVPN/DNS, les 7 runbooks,
+le DRP.
 
-- Slack workspace GR46 créé ? → canal `#cia-alerts`.
-- Équipement réseau stable : réserver créneau data-room.
-- Valentin disponible pour §5.
-
----
-
-## 7. Risques
-
-| Risque                                          | Parade                       |
-|-------------------------------------------------|------------------------------|
-| Indispo Slack                                   | Fallback : webhook à un mock |
-| Chaos drill → vraie panne                       | Snapshot Proxmox avant       |
-| Bonus multi-site impossible (matériel)          | Montrer sim via docker compose|
+Ce qui **change** : trois fichiers d'entrée par site (tfvars, inventaire,
+secrets) + le passage de `--syntax-check`/`--check` à l'`apply` réel.
 
 ---
 
-## 8. Livrables finaux après FW3 → Final
+## 4. Plan de migration — phases et commandes
 
-- Keynote finale (`docs/backlog/keynote.md`)
-- Vidéo démo (3 min)
-- Export CRITERES.md à jour avec preuves
-- Rapport DRP complet avec exercice réel
+> Convention : toutes les commandes sont lancées depuis la racine du dépôt.
+> Les valeurs entre `<…>` sont à remplacer par les valeurs réelles de l'école.
+> Chaque phase se termine par une **preuve** (capture / sortie) à archiver dans
+> `docs/demo/captures/`.
+
+### Phase 0 — Reconnaissance & accès (J0)
+
+Objectif : récupérer les paramètres réels et valider l'accès API.
+
+```bash
+# Sur chaque hôte Proxmox école (via la console web ou SSH) :
+pveversion                 # confirmer 9.1.x
+qm list                    # relever VMID, nom, statut des 6 VMs
+pvesh get /nodes           # nom exact des nœuds
+cat /etc/network/interfaces  # bridges existants (vmbrX)
+```
+
+Créer le user/token API dédié (droits `VM.Allocate`, `VM.Config.*`,
+`Datastore.AllocateSpace`, `SDN.*`) — **à faire soi-même côté Proxmox**, ne
+jamais committer le token en clair :
+
+```bash
+# Sur le Proxmox école, en root :
+pveum user add terraform@pve
+pveum aclmod / -user terraform@pve -role PVEVMAdmin
+pveum user token add terraform@pve ci --privsep 0
+```
+
+> Preuve : `00-school-qm-list.png`, `00-school-pveversion.png`.
+
+### Phase 1 — Secrets prod (J0)
+
+Créer le bundle de secrets prod, chiffré dès la première seconde (jamais de
+secret en clair sur le disque commité).
+
+```bash
+# Repartir du gabarit fourni :
+cp secrets/school-prod.enc.yml.example /tmp/school-prod.plain.yml
+# éditer /tmp/school-prod.plain.yml : token Proxmox, mots de passe, tokens NetBox/ES
+sops --encrypt --age $(cat ~/.config/sops/age/keys.txt | grep public | cut -d' ' -f4) \
+  /tmp/school-prod.plain.yml > secrets/school-prod.enc.yml
+shred -u /tmp/school-prod.plain.yml     # détruire la version claire
+sops -d secrets/school-prod.enc.yml | head   # vérifier le déchiffrement
+```
+
+> Preuve : `01-sops-decrypt-ok.png` (sortie déchiffrée, secrets masqués).
+
+### Phase 2 — Pointer Terraform vers l'école & importer l'existant (J1)
+
+C'est le cœur de la migration. On ne recrée rien : on **réconcilie**.
+
+```bash
+cd terraform/siteA
+cp terraform.tfvars.example terraform.tfvars
+# éditer terraform.tfvars : pve_endpoint, pve_node, VMIDs, datastore, templates
+
+terraform init
+terraform plan      # montre qu'il VEUT créer des VMs déjà existantes → normal avant import
+
+# Importer chaque VM pré-allouée dans le state (à répéter pour les 6) :
+terraform import 'module.vm["pfsense-s1"].proxmox_virtual_environment_vm.this' <NODE>/<VMID>
+terraform import 'module.vm["services-s1"].proxmox_virtual_environment_vm.this' <NODE>/<VMID>
+terraform import 'module.vm["observability-s1"].proxmox_virtual_environment_vm.this' <NODE>/<VMID>
+
+terraform plan      # objectif : converger vers "No changes" ou diffs maîtrisés
+```
+
+Répéter pour `terraform/siteB`. Tout écart restant au `plan` est analysé : soit
+on aligne le code sur le réel (drift voulu côté école), soit on laisse Terraform
+corriger (drift non voulu).
+
+> Preuve : `02-tf-import-state.png`, `03-tf-plan-converged.png`.
+
+### Phase 3 — Réseau / bridges / SDN (J1)
+
+Provisionner les bridges des deux sites via le module `network`, en important le
+bridge de management existant pour ne pas couper l'accès (leçon du dev, blocage
+B1).
+
+```bash
+cd terraform/siteA
+# importer le bridge management AVANT d'appliquer, comme en dev :
+terraform import 'module.network.proxmox_virtual_environment_network_linux_bridge.mgmt' <NODE>/vmbr0
+terraform apply        # crée les bridges LAN/ADMIN/SERVICES manquants
+```
+
+> Preuve : `04-bridges-applied.png`.
+
+### Phase 4 — Configuration Ansible réelle (J2-J3)
+
+Passer de la validation à l'exécution. On déroule dans l'ordre de dépendance.
+
+```bash
+cd ansible
+
+# 1. Base commune sur toutes les VMs Linux (users, sshd durci, auditd, fail2ban)
+ansible-playbook -i inventories/prod.ini playbooks/site.yml --check    # dry-run d'abord
+ansible-playbook -i inventories/prod.ini playbooks/site.yml            # apply réel
+
+# 2. pfSense (règles firewall + interfaces) sur les deux sites
+ansible-playbook -i inventories/prod.ini playbooks/siteA.yml --tags pfsense
+ansible-playbook -i inventories/prod.ini playbooks/siteB.yml --tags pfsense
+
+# 3. NetBox (IPAM) + seed du plan d'adressage
+ansible-playbook -i inventories/prod.ini playbooks/siteA.yml --tags netbox
+
+# 4. Stack Elastic (ES + Kibana + Logstash + Filebeat)
+ansible-playbook -i inventories/prod.ini playbooks/elastic.yml
+
+# 5. Bastion SSH (MFA TOTP + audit)
+ansible-playbook -i inventories/prod.ini playbooks/bastion.yml
+```
+
+> Preuve : `05-ansible-site-recap.png` (récap `ok/changed/failed=0`),
+> `06-netbox-ui.png`, `07-kibana-up.png`, `08-bastion-mfa.png`.
+
+### Phase 5 — Tunnel OpenVPN site-à-site (J3)
+
+Une fois les deux pfSense configurés, monter le tunnel et vérifier le
+re-handshake côté Kibana.
+
+```bash
+cd ansible
+ansible-playbook -i inventories/prod.ini playbooks/vpn.yml
+# vérifier la connectivité inter-sites à travers le tunnel :
+ansible -i inventories/prod.ini services-s1 -m ping     # via 172.16.0.0/30
+```
+
+> Preuve : `09-vpn-tunnel-up.png` (status OpenVPN pfSense + ping inter-site).
+
+### Phase 6 — Vérification de bout en bout (J4)
+
+```bash
+# idempotence : un second apply ne change rien
+cd terraform/siteA && terraform plan        # "No changes"
+cd ../../ansible && ansible-playbook -i inventories/prod.ini playbooks/site.yml --check  # changed=0
+
+# killswitch (démo sécurité)
+ansible-playbook -i inventories/prod.ini playbooks/killswitch.yml -e killswitch_state=active -e site=siteB
+# curl depuis le LAN → bloqué, puis revert
+ansible-playbook -i inventories/prod.ini playbooks/killswitch.yml -e killswitch_state=inactive -e site=siteB
+```
+
+> Preuve : `10-tf-plan-nochanges-prod.png`, `11-killswitch-demo.png`.
+
+### Phase 7 — Documentation & clôture (J4-J5)
+
+- Mettre à jour `docs/STATUS.md` : runtime 55% → ~95%, tout passe en ✅ Live.
+- Rédiger `docs/demo/fw3-demo-walkthrough.md` (même format que FW2 :
+  capture + explication pour étudiant débutant).
+- Cocher cette checklist, tagger `fw3-2026-06` (déclenche `release.yml`).
 
 ---
 
-*GR46 — CIA Epitech 2025-2026*
+## 5. Critères d'évaluation couverts par le FW3
+
+| Attendu | Preuve FW3 |
+|---|---|
+| Infra réellement déployée (pas seulement décrite) | Phases 2-5, captures runtime école |
+| Configuration complète des deux sites | Phase 4, récaps Ansible |
+| Tunnel site-à-site fonctionnel | Phase 5, status OpenVPN + ping inter-site |
+| Centralisation des logs opérationnelle | Phase 4.4, Kibana avec logs réels |
+| IPAM source de vérité | Phase 4.3, NetBox seedé depuis `addressing.yml` |
+| Idempotence / reproductibilité | Phase 6, `plan`=No changes, `--check`=changed=0 |
+| Sécurité démontrée live | Phase 4.5 + 6, bastion MFA, killswitch |
+
+---
+
+## 6. Bonus (si le temps le permet, après la migration)
+
+Ces objectifs étaient le cœur de l'ancien plan FW3 ; ils deviennent du **bonus**
+une fois la migration faite. À ne lancer qu'après la Phase 7.
+
+| Bonus | Engagement |
+|---|---|
+| Exercice DRP réel | Jouer le scénario #1 (perte VM `services-s1`) en live, preuve vidéo |
+| Alerting (monitoring avancé) | Règles Kibana → webhook Slack `#cia-alerts` |
+| Multi-site horizontal | POC Site C en un `terraform apply` (sandbox) |
+| Rotation PKI OpenVPN | `scripts/rotate-openvpn.sh` + cron trimestriel |
+| Hardening supplémentaire | Profils AppArmor + USBGuard |
+| Performance Elastic | Benchmark ingestion 10 k EPS |
+
+---
+
+## 7. Métriques visées FW3
+
+| Métrique | Cible |
+|---|---|
+| Migration dev → école (terraform import + converge) | < 1 journée |
+| `terraform plan` prod idempotent | "No changes" |
+| `ansible-playbook site.yml --check` post-apply | `changed=0` |
+| Tunnel OpenVPN up (re-handshake) | < 30 s après `vpn.yml` |
+| Log → visible Kibana | < 10 s |
+| Restauration config pfSense depuis Git | < 10 min |
+
+---
+
+## 8. Risques & parades
+
+| Risque | Parade |
+|---|---|
+| VMs école dans un état imprévu (drift fort) | `terraform import` + `plan` avant tout apply ; aligner le code si besoin |
+| Token API insuffisant (droits SDN/Datastore) | Vérifier les rôles PVE en Phase 0 avant de commencer |
+| Couper le management en touchant `vmbr0` | Importer le bridge mgmt avant `apply` (leçon dev) |
+| Templates absents sur les nœuds école | Cloner/importer les templates en Phase 0 (Ubuntu + pfSense) |
+| Indispo créneau data-room | Tout est scriptable : rejouable en une session courte |
+
+---
+
+## 9. Dépendances externes
+
+- Accès SSH + API aux deux hôtes Proxmox de l'école, avec un token dédié.
+- Permissions `GR46@pve` / `terraform@pve` suffisantes (cf Phase 0).
+- Valentin disponible pour la validation finale FW3.
+
+---
+
+## 10. Livrables après FW3 → Final
+
+- `docs/demo/fw3-demo-walkthrough.md` (captures + explications).
+- `docs/STATUS.md` à ~95% runtime.
+- Keynote finale (`docs/backlog/keynote.md` → deck `pptx`).
+- Vidéo démo (3 min) : migration + tunnel + killswitch.
+- `CRITERES.md` à jour avec preuves runtime.
+
+---
+
+*GR46 — CIA Epitech 2025-2026 — Plan vivant, mis à jour à chaque phase FW3.*

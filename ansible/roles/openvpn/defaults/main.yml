@@ -1,0 +1,10 @@
+---
+# Mode de l'instance OpenVPN. Surchargé explicitement par playbooks/vpn.yml
+# ("server" sur Site A, "client" sur Site B). Ce défaut sert de repli quand le
+# rôle est invoqué via site.yml en s'appuyant sur vpn_role (group_vars de site).
+openvpn_mode: "{{ vpn_role | default('server') }}"
+
+# Endpoint distant côté client (Site B). Renseigné dans group_vars/siteB.yml ;
+# repli neutre pour éviter une variable indéfinie en exécution partielle.
+vpn_remote_endpoint: "{{ hostvars['pfsense-s1'].pfsense_vpn_ip | default('') }}"
+vpn_remote_port: "{{ vpn.port | default(1194) }}"

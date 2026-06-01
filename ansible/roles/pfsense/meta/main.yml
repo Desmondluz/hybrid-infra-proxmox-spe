@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: pfsense
+  author: GR46 — CIA
+  description: Pousse interfaces et règles firewall sur pfSense via l'API REST (segmentation LAN/ADMIN/SERVICES/VPN).
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: FreeBSD
+      versions: ["14.0"]
+  galaxy_tags: [pfsense, firewall, security, networking]
+dependencies: []

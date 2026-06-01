@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: netbox
+  author: GR46 — CIA
+  description: Déploie NetBox (IPAM / source de vérité) via Docker compose + reverse proxy Caddy, puis seed du plan d'adressage.
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+  galaxy_tags: [netbox, ipam, docker, source-of-truth]
+dependencies: []

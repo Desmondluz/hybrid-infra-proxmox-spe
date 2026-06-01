@@ -2,7 +2,7 @@
 
 **Projet** : T-NSA-810-REP25 — Deployment and Securing of a Hybrid Infrastructure
 **Groupe** : GR46 · **École** : Epitech · **Année** : 2025-2026
-**Date de la photo** : 2026-04-26 · **Phase courante** : **FW2** (deuxième follow-up — clôturé côté GR46, validation jury à venir)
+**Date de la photo** : 2026-05-24 · **Phase courante** : **FW2 clôturé** → **prépa FW3 en cours** (migration dev → environnement école + configuration complète)
 **Propriétaire du document** : GR46 · **Cadence de mise à jour** : à chaque jalon (FW1 / FW2 / FW3 / Final) et après chaque étape Terraform/Ansible significative
 
 ---
@@ -94,6 +94,8 @@ les images sans cloud-init via 3 toggles (`enable_cloud_init`,
 |---|---|---|
 | `ansible/ansible.cfg` + `requirements.yml` | ✅ | Collections déclarées |
 | Inventaires `siteA.ini` (43 L), `siteB.ini` (25 L) | ✅ code | Hôtes attendus (à valider quand IPs réelles disponibles) |
+| Inventaire prod `prod.ini.example` (FW3) | ✅ code | Squelette combiné 2 sites pour la migration école, placeholders + bootstrap bastion documentés |
+| `meta/main.yml` + `defaults/main.yml` sur tous les rôles | ✅ code | meta ajoutés (openvpn, pfsense, netbox, bastion), defaults openvpn/bastion ; les 11 rôles ont désormais une structure complète |
 | Group_vars `all.yml` (74 L), `siteA.yml` (32 L), `siteB.yml` (31 L) | ✅ code | Variables centralisées, segmentations LAN/ADMIN/SERVICES, paramètres VPN |
 | 11 rôles (`common`, `bastion`, `pfsense`, `openvpn`, `netbox`, `dns-forwarder`, `elasticsearch`, `kibana`, `logstash`, `filebeat`, `webapp`) | ✅ code | Tasks + handlers + templates + meta + defaults selon le rôle |
 | 7 playbooks (`siteA`, `siteB`, `vpn`, `bastion`, `elastic`, `killswitch`, `site`) | ✅ code | Lint OK (`ansible-lint`, `yamllint` en CI) |
@@ -130,7 +132,7 @@ Pré-requis Site A : accès physique Proxmox Epitech, template Ubuntu cloud-init
 |---|---|---|---|
 | Bastion SSH durci (MFA TOTP, fail2ban, audit) | ✅ | ❌ | `ansible/roles/bastion/` ; nécessite VM bootée |
 | Hardening sshd / OS / TLS | ✅ | ❌ | `ansible/roles/common/templates/sshd_config.j2` |
-| Secrets SOPS + age | ✅ | ✅ | `secrets/siteA.enc.yml`, `secrets/siteB.enc.yml`, `.sops.yaml`, clé age générée |
+| Secrets SOPS + age | ✅ | ✅ | `secrets/siteA.enc.yml`, `secrets/siteB.enc.yml`, `.sops.yaml`, clé age générée ; gabarit prod `secrets/school-prod.enc.yml.example` prêt pour FW3 |
 | Vault (KV-v2 + PKI) | ✅ code | ❌ | `vault/policies/*.hcl`, `vault/scripts/init-vault.sh` ; bootstrap Vault planifié FW3 |
 | Killswitch pfSense | ✅ code | ❌ | `ansible/playbooks/killswitch.yml` ; nécessite pfSense up |
 | Audit logs (auditd, rsyslog forward) | ✅ code | ❌ | `ansible/roles/common/tasks/main.yml` ; nécessite Elastic up |
@@ -161,7 +163,7 @@ Pré-requis Site A : accès physique Proxmox Epitech, template Ubuntu cloud-init
 | `docs/drp/drp.md` | 154 | ✅ — 5 scénarios + RTO/RPO |
 | `docs/runbooks/*.md` | 7 fichiers (73-129 L) | ✅ — bastion, elasticsearch, killswitch, netbox, pfsense, secrets, vpn |
 | `docs/architecture/*.drawio` | 3 | ✅ — infra, vpn, firewall-rules + fallback Mermaid |
-| `docs/backlog/followup{1,2,3}.md` | 3 | ✅ — bilan FW1, livrables FW2, plan FW3 |
+| `docs/backlog/followup{1,2,3}.md` | 3 | ✅ — bilan FW1, livrables FW2, plan FW3 recentré sur la migration dev→école (phases + commandes) |
 | `docs/gantt/CIA_Gantt_GR46-2.pptx` | — | ✅ — 7 phases fév→juil 2026 |
 
 ### 8. CI/CD GitHub Actions
@@ -260,4 +262,4 @@ Hôte Windows (DESMOND)
 ---
 
 *GR46 — CIA Epitech 2025-2026 — Document vivant, mis à jour à chaque jalon.*
-*Dernière revue : 2026-04-26 (clôture FW2 côté GR46).*
+*Dernière revue : 2026-05-24 (prépa FW3 : plan de migration, squelettes prod, complétion des rôles).*

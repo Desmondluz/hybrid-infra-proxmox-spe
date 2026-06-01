@@ -15,7 +15,7 @@ admin_users:
     comment: "Desmon (GR46)"
     groups: [sudo]
     ssh_keys:
-      - "ssh-ed25519 AAAA...replaceme... desmon@laptop"
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP1fGbxJqE8ZVAx5Q8rtoWTULjhe0u+HoyMHOCTEXFoe dell@DESMOND"
   - name: ops
     comment: "Compte automation"
     groups: [sudo]

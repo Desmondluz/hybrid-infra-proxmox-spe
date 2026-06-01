@@ -1,0 +1,8 @@
+---
+# Activer l'authentification à deux facteurs (clé SSH + TOTP) via PAM.
+# Surchargé dans group_vars/siteB.yml (bastion_mfa_enabled).
+bastion_mfa_enabled: true
+
+# Port SSH exposé du bastion. Aligné sur l'inventaire (ansible_port=2222) et
+# group_vars/siteB.yml (bastion_wan_port).
+bastion_wan_port: 2222

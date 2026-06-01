@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: bastion
+  author: GR46 — CIA
+  description: Durcit l'hôte Site B en bastion SSH unique (MFA TOTP, fail2ban, auditd, forward syslog chiffré).
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+  galaxy_tags: [bastion, ssh, mfa, hardening, security]
+dependencies: []

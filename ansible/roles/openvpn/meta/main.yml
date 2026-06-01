@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: openvpn
+  author: GR46 — CIA
+  description: Configure le tunnel OpenVPN site-à-site via l'API REST pfSense (mode server/client).
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: FreeBSD
+      versions: ["14.0"]
+  galaxy_tags: [openvpn, vpn, pfsense, security, networking]
+dependencies: []

@@ -20,6 +20,9 @@ terraform.rc
 .ansible/
 ansible.log
 roles/**/vendor/
+# Inventaire prod rempli (peut contenir des IPs/endpoints école) — garder l'exemple
+ansible/inventories/prod.ini
+!ansible/inventories/prod.ini.example
 
 # -------- Python --------
 __pycache__/
@@ -48,6 +51,7 @@ npm-debug.log*
 *.p12
 secrets/plaintext/
 *.unencrypted.*
+*.plain.yml
 .env
 .env.*
 !.env.example

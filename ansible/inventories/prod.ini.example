@@ -1,0 +1,90 @@
+; ============================================================================
+; Inventaire PROD — environnement Proxmox de l'école (FW3)
+; ----------------------------------------------------------------------------
+; Copier ce fichier en `prod.ini` puis remplacer les <…> par les valeurs
+; réelles de l'école. NE PAS committer `prod.ini` s'il contient des IPs
+; sensibles (il est ignoré par .gitignore au même titre que les *.tfvars).
+;
+; Principe GitOps : l'adressage INTERNE (10.10.x / 192.168.x) est défini par
+; notre plan (networking/addressing.yml) et reste IDENTIQUE entre dev et prod.
+; Ce qui change en prod, c'est uniquement :
+;   - le chemin d'accès initial (bastion jump, IP de management école),
+;   - les endpoints API Proxmox (côté Terraform, pas ici),
+;   - les secrets (secrets/school-prod.enc.yml).
+; ============================================================================
+
+; --- Site A (hôte Proxmox école #1) -----------------------------------------
+[pfsense_a]
+pfsense-s1 ansible_host=10.10.10.1 ansible_user=admin ansible_port=22
+
+[services_a]
+services-s1 ansible_host=10.10.10.20 ansible_user=admin
+
+[observability_a]
+observability-s1 ansible_host=10.10.10.40 ansible_user=admin
+
+; --- Site B (hôte Proxmox école #2) -----------------------------------------
+[pfsense_b]
+pfsense-s2 ansible_host=192.168.0.1 ansible_user=admin ansible_port=22
+
+[bastion_b]
+bastion-s2 ansible_host=192.168.0.10 ansible_user=admin ansible_port=2222
+
+[services_b]
+services-s2 ansible_host=192.168.10.20 ansible_user=admin
+
+; --- Regroupements par site -------------------------------------------------
+[siteA:children]
+pfsense_a
+services_a
+observability_a
+
+[siteB:children]
+pfsense_b
+bastion_b
+services_b
+
+; --- Regroupements fonctionnels (consommés par les playbooks) ---------------
+[pfsense:children]
+pfsense_a
+pfsense_b
+
+[services:children]
+services_a
+services_b
+
+[bastion:children]
+bastion_b
+
+[netbox:children]
+services_a
+
+[webapp:children]
+services_a
+
+[elastic:children]
+observability_a
+
+[kibana:children]
+observability_a
+
+[logstash:children]
+observability_a
+
+[linux:children]
+services_a
+services_b
+observability_a
+bastion_b
+
+; --- Variables globales -----------------------------------------------------
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
+
+; Bootstrap : tant que le tunnel VPN n'est pas monté, on atteint les VMs des
+; LAN internes en rebondissant par le bastion (jump host). Décommenter et
+; renseigner l'IP publique/management du bastion fournie par l'école :
+; ansible_ssh_common_args='-o ProxyJump=admin@<IP_MANAGEMENT_BASTION>:2222'
+
+; Empreintes d'hôtes inconnues au premier contact (à retirer après le 1er run) :
+; ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new'
