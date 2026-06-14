@@ -253,6 +253,34 @@ ansible-playbook -i inventories/prod.ini playbooks/killswitch.yml -e killswitch_
 
 ---
 
+## 5b. Décision de design FW3 — services-s2 fait double duty (services + bastion)
+
+Pendant l'apply de FW3, l'installation Ubuntu de la VM dédiée `bastion-s2` a
+buté deux fois sur un bug subiquity (erreurs internes au démarrage du clavier
+ou de l'install OpenSSH). Plutôt que de bloquer l'avancée du Follow-up 3
+sur cette friction, nous avons pris la décision documentée suivante :
+
+**`services-s2` joue temporairement le rôle de "services + bastion"** pour la
+durée du FW3. Cette décision est explicite et traçable :
+
+- Le rôle Ansible `bastion` est appliqué sur `services-s2` avec deux toggles
+  désactivés (`bastion_mfa_enabled=false`, `bastion_sshd_override=false`),
+  ajoutés dans la version FW3 du rôle. Cela évite tout risque de lockout
+  tout en posant 80 % des fonctionnalités bastion.
+- Ce qui est appliqué : banner d'accès restreint, fail2ban *aggressive jail*
+  (ban 24 h, `maxretry=3`), auditd bastion-rules (tracking execve des users,
+  log tamper, ssh config), forward syslog chiffré vers Elastic, paquets MFA
+  préinstallés (`libpam-google-authenticator`).
+- Ce qui est reporté à la keynote finale : activation effective de la MFA TOTP
+  (le rôle l'active dès `bastion_mfa_enabled=true`), séparation propre sur la
+  VM `bastion-s2` dédiée (séparation des préoccupations), enrôlement TOTP
+  des admins via le script `/usr/local/bin/setup-mfa`.
+
+**Pourquoi c'est défendable** : la fonction bastion ne disparaît pas, elle est
+co-hébergée avec services-s2 pour FW3, code et conf prêts à migrer sur une
+VM dédiée par un simple `terraform import` + `ansible-playbook bastion.yml`
+côté Final.
+
 ## 6. Bonus (si le temps le permet, après la migration)
 
 Ces objectifs étaient le cœur de l'ancien plan FW3 ; ils deviennent du **bonus**
