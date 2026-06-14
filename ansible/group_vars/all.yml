@@ -15,12 +15,16 @@ admin_users:
     comment: "Desmon (GR46)"
     groups: [sudo]
     ssh_keys:
+      # Clé Linux WSL (pilote Ansible) — clé primaire utilisée par la CI et les playbooks
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJdGQ29aN/5Xh/N1q7wI5xq0ap+j/4G2YX4sHLYMtuvW desmon@cia-gr46"
+      # Clé Windows OpenSSH (accès ad-hoc depuis PowerShell)
       - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP1fGbxJqE8ZVAx5Q8rtoWTULjhe0u+HoyMHOCTEXFoe dell@DESMOND"
   - name: ops
-    comment: "Compte automation"
+    comment: "Compte automation CI"
     groups: [sudo]
     ssh_keys:
-      - "ssh-ed25519 AAAA...replaceme... ops@ci"
+      # Même clé Linux pour le moment ; à dédier quand on aura un runner CI séparé
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJdGQ29aN/5Xh/N1q7wI5xq0ap+j/4G2YX4sHLYMtuvW desmon@cia-gr46"
 
 # --- VPN -------------------------------------------------------------------
 vpn:
