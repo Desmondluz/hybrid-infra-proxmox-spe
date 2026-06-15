@@ -1,0 +1,24 @@
+###############################################################
+#  RESTRICTED ACCESS — Hybrid Infra Bastion (Site B)          #
+#  All connections are logged and monitored.                  #
+#  Unauthorized access is prohibited.                         #
+###############################################################
+---FAIL2BAN---
+Status for the jail: sshd
+|- Filter
+|  |- Currently failed:	0
+|  |- Total failed:	0
+|  `- Journal matches:	_SYSTEMD_UNIT=sshd.service + _COMM=sshd
+`- Actions
+   |- Currently banned:	0
+   |- Total banned:	0
+   `- Banned IP list:	
+---AUDIT---
+# Trace toutes les commandes exécutées par les users (pour forensic)
+-a exit,always -F arch=b64 -F euid>=1000 -F euid!=65534 -S execve -k user_cmd
+-a exit,always -F arch=b32 -F euid>=1000 -F euid!=65534 -S execve -k user_cmd
+-w /var/log/ -p wa -k log_tamper
+-w /etc/ssh/ -p wa -k ssh_config
+---
+services-s2
+Mon Jun 15 08:34:14 AM UTC 2026
