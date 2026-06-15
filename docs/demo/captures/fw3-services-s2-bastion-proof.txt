@@ -12,7 +12,7 @@ Status for the jail: sshd
 `- Actions
    |- Currently banned:	0
    |- Total banned:	0
-   `- Banned IP list:	
+   `- Banned IP list:
 ---AUDIT---
 # Trace toutes les commandes exécutées par les users (pour forensic)
 -a exit,always -F arch=b64 -F euid>=1000 -F euid!=65534 -S execve -k user_cmd
