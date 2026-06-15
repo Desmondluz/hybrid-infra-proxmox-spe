@@ -1,0 +1,2 @@
+PLAY RECAP *********************************************************************
+services-s2                : ok=41   changed=4    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0   
