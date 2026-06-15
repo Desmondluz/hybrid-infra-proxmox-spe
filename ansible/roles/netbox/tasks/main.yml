@@ -82,6 +82,7 @@
   delay: 10
 
 - name: "[netbox] Importer le plan d'adressage depuis networking/addressing.yml"
+  when: netbox_seed_enabled | default(true) | bool
   ansible.builtin.script:
     cmd: "{{ role_path }}/files/seed_netbox.py {{ playbook_dir }}/../../networking/addressing.yml"
   environment:
