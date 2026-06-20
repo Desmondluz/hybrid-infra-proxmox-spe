@@ -309,25 +309,25 @@ l'extraction des images Docker, où il a buté sur **`no space left on device`**
 **Plan pour la keynote finale** : (1) demande admin école pour resize
 disque services-s2 à 30 Go, OU déploiement de NetBox sur `services-s1`
 (Site A, qui aura plus d'espace), (2) re-lancer `playbooks/netbox-services-s2.yml`
-(rôle corrigé) en mode `--check` d'abord puis apply, (3) capture UI + sites
-+ préfixes seedés depuis `networking/addressing.yml`.
+(rôle corrigé) en mode `--check` d'abord puis apply, (3) capture UI, sites
+et préfixes seedés depuis `networking/addressing.yml`.
 
 ## 5d. Bonus Site C — extension cloud hybride sur Microsoft Azure
 
 Pour démontrer la capacité GitOps à étendre l'infrastructure hybride au cloud
 public, un troisième site `siteC-azure` a été conçu et codé en Terraform :
 
-- Module complet `terraform/siteC-azure/` (5 fichiers, ~250 lignes) avec
-  provider `azurerm`, Resource Group + VNet (`10.3.0.0/16`) + Subnet public
-  + NSG (firewall as code : SSH 22, OpenVPN 1194/UDP, HTTPS 443, Kibana
-  5601) + Public IP statique + NIC + VM Linux Ubuntu 22.04 LTS.
+- Module complet `terraform/siteC-azure/` (5 fichiers, environ 250 lignes)
+  avec provider `azurerm`, Resource Group, VNet (`10.3.0.0/16`), Subnet
+  public, NSG (firewall as code : SSH 22, OpenVPN 1194/UDP, HTTPS 443,
+  Kibana 5601), Public IP statique, NIC et VM Linux Ubuntu 22.04 LTS.
 - Cloud-init pré-installant Docker CE depuis le repo officiel.
 - 12 checks `checkov` PASSED, 3 skips inline avec justification engineering
   (CKV_AZURE_10 SSH bastion design, CKV_AZURE_50 false-positive cloud-init,
   CKV_AZURE_119 public IP par design pour OpenVPN server).
-- Architecture cible : Site C héberge NetBox + stack Elastic (Elasticsearch
-  + Kibana + Logstash) + bastion SSH + OpenVPN server pour tunnel
-  inter-sites Site B (client) → Site C (server).
+- Architecture cible : Site C héberge NetBox, stack Elastic (Elasticsearch,
+  Kibana, Logstash), bastion SSH et OpenVPN server pour tunnel inter-sites
+  Site B (client) vers Site C (server).
 
 **État runtime** : `terraform plan` validé (8 ressources, 0 erreur), `terraform
 apply` partiellement déployé (RG + VNet + Subnet + NSG + Public IP + NIC
@@ -341,7 +341,7 @@ increase B-series VMs sur la région cible. Délai habituel 24-72h, sans
 coût additionnel sous Students subscription. Le code Terraform est sans
 modification : un seul `terraform apply` suffit dès le quota libéré.
 
-**Observabilité runtime pour la keynote finale** : stack Elastic +
+**Observabilité runtime pour la keynote finale** : stack Elastic et
 Kibana déployée localement en Docker compose dans WSL pour démontrer la
 chaîne complète Filebeat (services-s2) → Logstash → Elasticsearch → Kibana
 via SSH reverse tunnel. C'est la même architecture, mais hébergée
