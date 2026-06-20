@@ -38,6 +38,7 @@ resource "azurerm_subnet" "subnet_public" {
 # --- Network Security Group (firewall as code) -----------------------------
 
 resource "azurerm_network_security_group" "nsg" {
+  # checkov:skip=CKV_AZURE_10:Bastion design — public SSH 22 required from anywhere, mitigated by SSH key-only auth (CKV_AZURE_178 PASSED) + fail2ban applied by Ansible.
   name                = "${var.prefix}-siteC-nsg"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -113,6 +114,7 @@ resource "azurerm_public_ip" "pip" {
 # --- Interface réseau ------------------------------------------------------
 
 resource "azurerm_network_interface" "nic" {
+  # checkov:skip=CKV_AZURE_119:Public IP required by design — Site C is the OpenVPN server endpoint joignable depuis Site B (client) et le bastion public du projet hybride.
   name                = "${var.prefix}-siteC-nic"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -128,6 +130,7 @@ resource "azurerm_network_interface" "nic" {
 # --- Linux VM Ubuntu 22.04 -------------------------------------------------
 
 resource "azurerm_linux_virtual_machine" "vm" {
+  # checkov:skip=CKV_AZURE_50:Faux positif — `custom_data` (cloud-init) n'est pas une VM extension Azure ; aucune `azurerm_virtual_machine_extension` n'est utilisée.
   name                  = "${var.prefix}-siteC-vm"
   location              = azurerm_resource_group.rg.location
   resource_group_name   = azurerm_resource_group.rg.name
