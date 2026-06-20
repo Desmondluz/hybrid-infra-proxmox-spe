@@ -472,7 +472,7 @@ ssh -i ~/.ssh/cia_gr46 desmon@bastion-s2 'echo "MFA challenge incoming"'
 
 - Vecteur d'attaque identifié : ☐ clé leak · ☐ MFA bypass · ☐ brute-force ·
   ☐ supply-chain · ☐ autre : _______.
-- Délai entre intrusion et détection : ___ heures.
+- Délai entre intrusion et détection : `___` heures.
 - Données exposées : ☐ aucune · ☐ logs · ☐ secrets · ☐ PII.
 - Procédure de rotation a déroulé sans heurts : ☐ oui · ☐ non, ajustement
   nécessaire dans : _______.
@@ -591,8 +591,8 @@ ansible-playbook -i prod.ini playbooks/site.yml --check
 - Origine du déclenchement : ☐ alerte Kibana mal calibrée · ☐ commande
   humaine accidentelle · ☐ test DRP non annoncé · ☐ autre : _______.
 - Délai de détection du killswitch (utilisateur impacté → annonce ops) :
-  ___ minutes (cible : < 5 min).
-- Calibration alerte ajustée : ☐ oui (seuil passé de _ à _) · ☐ non.
+  `___` minutes (cible : < 5 min).
+- Calibration alerte ajustée : ☐ oui (seuil passé de `___` à `___`) · ☐ non.
 - Documentation killswitch mise à jour avec ce cas : ☐ oui · ☐ non.
 
 ---
