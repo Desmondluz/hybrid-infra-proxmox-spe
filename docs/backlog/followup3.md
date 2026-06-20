@@ -281,6 +281,73 @@ co-hébergée avec services-s2 pour FW3, code et conf prêts à migrer sur une
 VM dédiée par un simple `terraform import` + `ansible-playbook bastion.yml`
 côté Final.
 
+## 5c. Tentative NetBox sur services-s2 (FW3) — bloquée disque
+
+Pendant FW3, nous avons tenté de déployer NetBox (IPAM) sur `services-s2`
+via le rôle Ansible `netbox`. Le rôle s'est exécuté correctement jusqu'à
+l'extraction des images Docker, où il a buté sur **`no space left on device`** :
+
+- Disque actuel de `services-s2` : **10 Go**, 100 % utilisé après install
+  Ubuntu base + paquets common/bastion + Docker CE (920 Mo) + clone
+  `netbox-docker` + images partielles (~6 Go).
+- Images requises pour la stack NetBox complète : ~5 Go supplémentaires
+  (postgres, valkey, netbox v4.6).
+- **Permissions école** : le user `GR46@pve` n'a pas les droits
+  `Datastore.AllocateSpace` pour faire `qm resize 2046 scsi0 +20G` depuis
+  l'interface web Proxmox ni depuis le shell. Le redimensionnement
+  nécessite une action admin école.
+
+**Améliorations apportées au rôle dans la branche FW3** :
+
+- Installation de Docker depuis le **repo officiel** (Ubuntu 24.04 noble)
+  au lieu de `docker.io` + `docker-compose-plugin` (qui n'existe pas dans
+  les repos par défaut sur noble).
+- Toggle `netbox_seed_enabled` (défaut `true`) pour permettre l'apply
+  sans le seed automatique du plan d'adressage (utile quand WSL ne route
+  pas vers la LAN école).
+
+**Plan pour la keynote finale** : (1) demande admin école pour resize
+disque services-s2 à 30 Go, OU déploiement de NetBox sur `services-s1`
+(Site A, qui aura plus d'espace), (2) re-lancer `playbooks/netbox-services-s2.yml`
+(rôle corrigé) en mode `--check` d'abord puis apply, (3) capture UI + sites
++ préfixes seedés depuis `networking/addressing.yml`.
+
+## 5d. Bonus Site C — extension cloud hybride sur Microsoft Azure
+
+Pour démontrer la capacité GitOps à étendre l'infrastructure hybride au cloud
+public, un troisième site `siteC-azure` a été conçu et codé en Terraform :
+
+- Module complet `terraform/siteC-azure/` (5 fichiers, ~250 lignes) avec
+  provider `azurerm`, Resource Group + VNet (`10.3.0.0/16`) + Subnet public
+  + NSG (firewall as code : SSH 22, OpenVPN 1194/UDP, HTTPS 443, Kibana
+  5601) + Public IP statique + NIC + VM Linux Ubuntu 22.04 LTS.
+- Cloud-init pré-installant Docker CE depuis le repo officiel.
+- 12 checks `checkov` PASSED, 3 skips inline avec justification engineering
+  (CKV_AZURE_10 SSH bastion design, CKV_AZURE_50 false-positive cloud-init,
+  CKV_AZURE_119 public IP par design pour OpenVPN server).
+- Architecture cible : Site C héberge NetBox + stack Elastic (Elasticsearch
+  + Kibana + Logstash) + bastion SSH + OpenVPN server pour tunnel
+  inter-sites Site B (client) → Site C (server).
+
+**État runtime** : `terraform plan` validé (8 ressources, 0 erreur), `terraform
+apply` partiellement déployé (RG + VNet + Subnet + NSG + Public IP + NIC
+créés avec succès), provisioning final VM bloqué par les **quotas Azure for
+Students** (SKU `Standard_B2s` et `Standard_B2as_v2` non disponibles dans les
+5 régions autorisées par la politique étudiante : `germanywestcentral`,
+`polandcentral`, `francecentral`, `spaincentral`, `italynorth`).
+
+**Mitigation en production** : ouvrir un ticket Azure Support pour quota
+increase B-series VMs sur la région cible. Délai habituel 24-72h, sans
+coût additionnel sous Students subscription. Le code Terraform est sans
+modification : un seul `terraform apply` suffit dès le quota libéré.
+
+**Observabilité runtime pour la keynote finale** : stack Elastic +
+Kibana déployée localement en Docker compose dans WSL pour démontrer la
+chaîne complète Filebeat (services-s2) → Logstash → Elasticsearch → Kibana
+via SSH reverse tunnel. C'est la même architecture, mais hébergée
+provisoirement sur le poste de pilotage en attendant le déblocage du quota
+Azure.
+
 ## 6. Bonus (si le temps le permet, après la migration)
 
 Ces objectifs étaient le cœur de l'ancien plan FW3 ; ils deviennent du **bonus**
