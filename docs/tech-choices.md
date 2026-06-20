@@ -126,8 +126,30 @@ Chaque entrée liste le **contexte**, le **choix**, les **alternatives**
 - **Trade-off** : un petit setup à faire (`pre-commit install`), mais
   effet massif sur la qualité.
 
-## 14. Journal de révision
+## 14. Terraform backend : local (FW3 → keynote finale) puis Azure Storage
 
-| Date        | Auteur | Changement                               |
-|-------------|--------|------------------------------------------|
-| 2026-04-18  | GR46   | Version initiale post follow-up #1       |
+- **Contexte** : gérer le `terraform.tfstate` (info sensible, perte ⇒
+  perte contrôle infra). Trois enjeux : sécurité, collaboration équipe,
+  résilience.
+- **Choix actuel — backend local** par défaut, fichiers exclus de Git par
+  `.gitignore` (`**/.terraform/*`, `*.tfstate`, `*.tfstate.*`), backups
+  manuels post-apply vers cloud personnel chiffré.
+- **Choix cible — backend distant Azure Storage** post-keynote finale :
+  Storage Account dédié `ciagr46tfstate`, container `tfstate`, blob lease
+  verrouillage natif, versioning + soft delete 30 j.
+- **Alternatives évaluées** :
+  - **Terraform Cloud** : verrouillage natif et UI, mais free tier limité
+    à 5 utilisateurs et runs payants au-delà du quota.
+  - **S3 + DynamoDB** : standard de fait, mais introduit AWS comme
+    second cloud (préférence Azure pour cohérence Site C bonus).
+- **Trade-off** : backend local acceptable en single-developer (Desmon),
+  migration vers Azure Storage planifiée dès passage en équipe ou en
+  production. Procédure documentée dans
+  [`docs/runbooks/terraform-state.md`](runbooks/terraform-state.md) §4.
+
+## 15. Journal de révision
+
+| Date        | Auteur | Changement                                              |
+|-------------|--------|---------------------------------------------------------|
+| 2026-04-18  | GR46   | Version initiale post follow-up #1                      |
+| 2026-06-20  | GR46   | ADR-14 — backend Terraform local + plan migration Azure |

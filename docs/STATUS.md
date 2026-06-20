@@ -2,7 +2,7 @@
 
 **Projet** : T-NSA-810-REP25 — Deployment and Securing of a Hybrid Infrastructure
 **Groupe** : GR46 · **École** : Epitech · **Année** : 2025-2026
-**Date de la photo** : 2026-05-24 · **Phase courante** : **FW2 clôturé** → **prépa FW3 en cours** (migration dev → environnement école + configuration complète)
+**Date de la photo** : 2026-06-15 · **Phase courante** : **FW3 — apply Ansible en cours sur l'environnement école** (services-s2 + pfSense Site B configurés, baseline + bastion-lite + firewall rules runtime visibles)
 **Propriétaire du document** : GR46 · **Cadence de mise à jour** : à chaque jalon (FW1 / FW2 / FW3 / Final) et après chaque étape Terraform/Ansible significative
 
 ---
