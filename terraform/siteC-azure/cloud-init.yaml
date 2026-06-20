@@ -1,0 +1,43 @@
+#cloud-config
+# Cloud-init Site C Azure — pré-installation Docker + utilitaires.
+# Ansible prendra le relais après pour Bastion + NetBox + Elastic + OpenVPN.
+
+package_update: true
+package_upgrade: false
+
+packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - jq
+  - vim
+  - htop
+  - net-tools
+  - tcpdump
+  - python3-pip
+
+runcmd:
+  # --- Installation Docker CE depuis le repo officiel -----------------------
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - |
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  - systemctl enable --now docker
+  - usermod -aG docker desmon
+
+  # --- Marqueur pour Ansible (signal cloud-init terminé) --------------------
+  - touch /etc/cia-cloudinit-done
+  - echo "Site C cloud-init completed at $(date -u +%Y-%m-%dT%H:%M:%SZ)" > /etc/cia-cloudinit-done
+
+write_files:
+  - path: /etc/motd
+    content: |
+      ###############################################################
+      #  Site C — CIA / GR46                                        #
+      #  Hybrid Infra extension on Microsoft Azure                  #
+      #  All connections logged. Unauthorized access prohibited.   #
+      ###############################################################
+    permissions: '0644'

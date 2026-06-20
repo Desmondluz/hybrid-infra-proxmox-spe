@@ -1,0 +1,8 @@
+# Copier vers `terraform.tfvars` (ignoré par git) et ajuster si besoin.
+# Tous les autres paramètres ont des défauts adaptés au projet CIA dans `variables.tf`.
+
+prefix              = "cia-gr46"
+location            = "westeurope"
+vm_size             = "Standard_B2s"
+admin_username      = "desmon"
+ssh_public_key_path = "~/.ssh/cia_gr46.pub"
