@@ -3,12 +3,6 @@
 # NetBox seed script on every change. Ensures that addressing.yml has the
 # required structure (sites, networks, hosts), valid CIDRs, and no overlap
 # before it lands on main — preventing a broken seed against the real NetBox.
-#
-# Triggers on changes to:
-#   - networking/addressing.yml (the IPAM source of truth)
-#   - ansible/roles/netbox/** (role code + seed script)
-#   - scripts/netbox/** (validator + helpers)
-#   - This workflow file itself
 
 name: netbox-validate
 
@@ -44,7 +38,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
 
       - name: Install validator dependencies
         run: pip install pyyaml requests
@@ -52,7 +45,10 @@ jobs:
       - name: Validate addressing.yml schema + CIDRs
         run: python3 scripts/netbox/validate-addressing.py
 
-      - name: Import-check seed_netbox.py (syntax + dependencies)
+      - name: Import-check seed_netbox.py
+        env:
+          NETBOX_URL: http://ci-mock.localhost
+          NETBOX_TOKEN: ci-mock-token
         run: |
           python3 -c "
           import importlib.util, pathlib
@@ -61,14 +57,11 @@ jobs:
               pathlib.Path('ansible/roles/netbox/files/seed_netbox.py')
           )
           mod = importlib.util.module_from_spec(spec)
-          import os
-          os.environ.setdefault('NETBOX_URL', 'http://ci-mock.localhost')
-          os.environ.setdefault('NETBOX_TOKEN', 'ci-mock-token')
           spec.loader.exec_module(mod)
           print('seed_netbox.py imports cleanly')
           "
 
-      - name: Lint validator script
+      - name: Lint validator + seed scripts
         run: |
           python3 -m py_compile scripts/netbox/validate-addressing.py
           python3 -m py_compile ansible/roles/netbox/files/seed_netbox.py
@@ -86,19 +79,16 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
 
       - name: Install dependencies
-        run: pip install pyyaml requests pytest-httpserver
+        run: pip install pyyaml requests
 
-      - name: Run seed against a local mock HTTP server
+      - name: Run seed against local mock HTTP server
         run: |
           python3 <<'PY'
-          import os, subprocess, sys, threading
+          import os, subprocess, sys, threading, time
           from http.server import BaseHTTPRequestHandler, HTTPServer
 
-          # Minimal NetBox API mock — answers any /api/* request with empty
-          # results (forces seed to POST) then echoes a fake created object.
           class MockNetBox(BaseHTTPRequestHandler):
               def _ok(self, body):
                   self.send_response(200)
@@ -112,11 +102,12 @@ jobs:
                   _ = self.rfile.read(length)
                   self._ok('{"id":1,"name":"mock","prefix":"10.0.0.0/24"}')
               def log_message(self, *args, **kwargs):
-                  pass  # silence
+                  pass
 
           srv = HTTPServer(("127.0.0.1", 18080), MockNetBox)
           t = threading.Thread(target=srv.serve_forever, daemon=True)
           t.start()
+          time.sleep(0.3)
 
           env = os.environ.copy()
           env["NETBOX_URL"] = "http://127.0.0.1:18080"
@@ -128,7 +119,8 @@ jobs:
               env=env, capture_output=True, text=True, timeout=60,
           )
           print("STDOUT:", r.stdout)
-          print("STDERR:", r.stderr)
+          if r.stderr:
+              print("STDERR:", r.stderr)
           srv.shutdown()
           sys.exit(r.returncode)
           PY
