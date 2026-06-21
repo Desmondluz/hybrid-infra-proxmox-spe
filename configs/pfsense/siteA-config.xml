@@ -75,9 +75,9 @@
     <rule>
       <type>pass</type>
       <interface>wan</interface>
-      <protocol>udp</protocol>
-      <destination><network>wanip</network><port>1194</port></destination>
-      <descr>OpenVPN server (Site B -> Site A)</descr>
+      <protocol>tcp</protocol>
+      <destination><network>wanip</network><port>443</port></destination>
+      <descr>OpenVPN server TCP 443 (Site B -> Site A) - OpenVPN-over-HTTPS pattern</descr>
     </rule>
 
     <!-- LAN : sortie web uniquement, pas d'admin direct -->
@@ -95,7 +95,7 @@
       <interface>lan</interface>
       <source><network>lan</network></source>
       <destination><address>10.10.0.1</address></destination>
-      <protocol>udp</protocol>
+      <protocol>tcp</protocol>
       <destination-port>53</destination-port>
       <descr>LAN -> pfSense DNS</descr>
     </rule>
@@ -139,11 +139,11 @@
   <openvpn>
     <openvpn-server>
       <vpnid>1</vpnid>
-      <description>CIA VPN Server (Site A)</description>
+      <description>CIA VPN Server (Site A) - TCP 443 OpenVPN-over-HTTPS</description>
       <mode>p2p_tls</mode>
-      <protocol>UDP4</protocol>
+      <protocol>TCP4</protocol>
       <interface>wan</interface>
-      <local_port>1194</local_port>
+      <local_port>443</local_port>
       <tunnel_network>172.16.0.0/30</tunnel_network>
       <remote_networks>192.168.0.0/24,192.168.10.0/24</remote_networks>
       <local_networks>10.10.0.0/24,10.10.10.0/24</local_networks>

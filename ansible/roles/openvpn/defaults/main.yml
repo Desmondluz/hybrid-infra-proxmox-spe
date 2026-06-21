@@ -7,4 +7,9 @@ openvpn_mode: "{{ vpn_role | default('server') }}"
 # Endpoint distant côté client (Site B). Renseigné dans group_vars/siteB.yml ;
 # repli neutre pour éviter une variable indéfinie en exécution partielle.
 vpn_remote_endpoint: "{{ hostvars['pfsense-s1'].pfsense_vpn_ip | default('') }}"
-vpn_remote_port: "{{ vpn.port | default(1194) }}"
+
+# Port + protocole VPN. Défaut TCP 443 (OpenVPN-over-HTTPS, traverse firewall
+# école Site A). Surchargeable via vpn.protocol et vpn.port dans group_vars/all.yml.
+# Voir docs/runbooks/vpn.md §1bis pour la justification du choix TCP 443.
+vpn_remote_port: "{{ vpn.port | default(443) }}"
+vpn_remote_protocol: "{{ vpn.protocol | default('tcp') }}"

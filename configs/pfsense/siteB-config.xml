@@ -127,12 +127,12 @@
   <openvpn>
     <openvpn-client>
       <vpnid>1</vpnid>
-      <description>CIA VPN Client (Site B -> Site A)</description>
+      <description>CIA VPN Client (Site B -> Site A) - TCP 443 OpenVPN-over-HTTPS</description>
       <mode>p2p_tls</mode>
-      <protocol>UDP4</protocol>
+      <protocol>TCP4</protocol>
       <interface>wan</interface>
       <server_addr>vpn.siteA.example.com</server_addr>
-      <server_port>1194</server_port>
+      <server_port>443</server_port>
       <tunnel_network>172.16.0.0/30</tunnel_network>
       <remote_networks>10.10.0.0/24,10.10.10.0/24</remote_networks>
       <data_ciphers>AES-256-GCM</data_ciphers>

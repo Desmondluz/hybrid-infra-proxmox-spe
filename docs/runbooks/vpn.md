@@ -1,6 +1,6 @@
 # Runbook — VPN site-à-site
 
-**Propriétaire** : GR46 · **Dernière revue** : 2026-04-18 · **Criticité** : S1
+**Propriétaire** : GR46 · **Dernière revue** : 2026-06-21 · **Criticité** : S1
 
 Ce runbook couvre le tunnel OpenVPN reliant Site A (serveur) et Site B
 (client). Il est la source de vérité opérationnelle ; les procédures
@@ -8,23 +8,48 @@ restaurent un tunnel en moins de 15 minutes.
 
 ## 1. Topologie
 
-```
+```text
 Site A pfsense-s1 ── WAN ── Internet ── WAN ── pfsense-s2 Site B
    172.16.0.1 (server)                         172.16.0.2 (client)
    LAN 10.10.0.0/24                            LAN 192.168.0.0/24
    ADMIN 10.10.10.0/24                         SERVICES 192.168.10.0/24
 ```
 
-- Transport : UDP/1194
+- Transport : **TCP/443** (OpenVPN-over-HTTPS, voir §1bis)
 - Chiffrement : AES-256-GCM, auth SHA256, TLS 1.2+, tls-crypt
 - PKI : Vault `pki_cia_vpn/`, CA valide 10 ans, certs 1 an
 - Config fichiers : `configs/openvpn/server.conf`, `configs/openvpn/client.conf`
+
+## 1bis. Pourquoi TCP 443 (OpenVPN-over-HTTPS)
+
+Le port standard OpenVPN est UDP 1194, mais nous utilisons **TCP 443** pour
+deux raisons opérationnelles :
+
+1. **Traversée firewall école Site A** : le réseau école Epitech bloque
+   en sortie tout port non standard (1194/UDP filtré). Seuls les ports
+   HTTP 80 et HTTPS 443 sont systématiquement autorisés sortants. TCP 443
+   ressemble à du HTTPS et passe les inspections périmétriques basiques.
+2. **Compatibilité réseaux invités/coworkings** : pattern reproductible
+   pour Site C cloud Azure ou tout autre site avec uplink restrictif.
+
+**Trade-off accepté** :
+
+- Latence TCP-over-TCP : +5 à 15 ms vs UDP (négligeable pour usage admin/logs CIA)
+- Throughput max ~70-80 % d'un tunnel UDP équivalent (suffisant pour notre
+  charge < 5 Mbps en pic)
+- Risque de meltdown TCP : mitigé par `keepalive 10 60` et `reneg-sec 3600`
+
+**Rollback** : pour repasser en UDP 1194 (réseaux non contraints), éditer
+`ansible/group_vars/all.yml` section `vpn:` (`protocol: udp, port: 1194`)
+puis ré-apply `ansible-playbook playbooks/vpn.yml`. Les fichiers
+`configs/openvpn/*.conf` et `configs/pfsense/site{A,B}-config.xml` sont
+templatisés à partir de ces variables.
 
 ## 2. Vérifications quotidiennes (2 min)
 
 ```bash
 # Depuis Site A
-pfctl -ss | grep 1194        # session UDP active
+pfctl -ss | grep ':443'      # session TCP 443 active vers IP publique Site B
 ping -c 3 172.16.0.2         # IP tunnel côté B
 ssh admin@10.10.0.30 "curl -s http://logstash:9600/_node/stats | jq .process.cpu"
 

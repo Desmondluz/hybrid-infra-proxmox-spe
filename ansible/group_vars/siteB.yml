@@ -16,7 +16,8 @@ pfsense_vpn_ip: "172.16.0.2"
 # Rôle VPN : site B = client
 vpn_role: "client"
 vpn_remote_endpoint: "pfsense-s1.public.example.com"  # à remplacer par IP publique ou FQDN réel
-vpn_remote_port: 1194
+vpn_remote_port: 443                                  # TCP 443 - cf docs/runbooks/vpn.md §1bis
+vpn_remote_protocol: tcp                              # cohérent avec group_vars/all.yml vpn.protocol
 
 # Bastion
 bastion_ip: "192.168.0.10"

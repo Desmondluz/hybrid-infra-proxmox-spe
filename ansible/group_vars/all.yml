@@ -28,8 +28,8 @@ admin_users:
 
 # --- VPN -------------------------------------------------------------------
 vpn:
-  protocol: udp
-  port: 1194
+  protocol: tcp
+  port: 443
   cipher: AES-256-GCM
   auth: SHA256
   tls_version: "1.2"
