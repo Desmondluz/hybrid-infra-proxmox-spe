@@ -338,16 +338,16 @@ Le reste : explications architecture, sécurité, bilan, Q&R (10 min).
 ## Speaker notes — phrases-clés à mémoriser
 
 > "Tout-code, tout-version, tout-audit. Aucune action manuelle non reproductible."
-
+>
 > "Le code est complet, le runtime est partiel — et c'est documenté
 > honnêtement dans `STATUS.md`. Les blockers sont externes : école et
 > capacité Azure. La méthode, elle, est entièrement prouvée."
-
+>
 > "Vous voyez ici en temps réel les vrais logs d'une VM en production
 > qui transitent par un tunnel SSH chiffré jusqu'à cette instance Kibana.
 > 15 000 événements indexés depuis hier soir, 6 règles d'alerting actives,
 > dont une qu'on vient de déclencher en direct devant vous."
-
+>
 > "GitOps marche : on a fait la migration d'un Proxmox imbriqué dev jetable
 > vers le matériel école réel en ne changeant que 3 fichiers — `terraform.tfvars`,
 > l'inventaire Ansible, et les secrets SOPS. C'est ça la promesse
