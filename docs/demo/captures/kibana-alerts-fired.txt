@@ -1,0 +1,3 @@
+[2026-06-20T23:57:02.545+00:00][WARN ][plugins.actions.server-log] Server log: ALERT-FILEBEAT-HEARTBEAT-LOST (P2) — Aucun event recu en 10 min. Diagnostic: 1) tunnel SSH inverse, 2) Filebeat status, 3) connectivite localhost:5044
+[2026-06-21T00:07:09.390+00:00][WARN ][plugins.actions.server-log] Server log: ALERT-FILEBEAT-HEARTBEAT-LOST (P2) — Aucun event recu en 10 min. Diagnostic: 1) tunnel SSH inverse, 2) Filebeat status, 3) connectivite localhost:5044
+[2026-06-21T09:10:22.347+00:00][WARN ][plugins.actions.server-log] Server log: 🚨 ALERT-SSH-FAIL-BURST (P2) — 12 SSH Failed passwords detectees en 5 min sur infra CIA. Date 2026-06-21T09:10:19.309Z. Investigation: Discover → message: "Failed password" → Last 15 min.
