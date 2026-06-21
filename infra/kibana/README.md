@@ -49,6 +49,7 @@ Pour exporter un dashboard et le commit dans ce repo :
 | Fichier | Titre | Panneaux | Usage |
 |---|---|---|---|
 | `dashboards/cia-observability-services-s2.ndjson` | CIA — Observability — services-s2 | 5 (Total events, SSH events, Sudo events, Timeline, Bar par dataset) | Démo runtime FW3-Final, screenshot keynote |
+| `dashboards/cia-ssh-security-monitor.ndjson` | CIA — SSH Security Monitor — services-s2 | 5 (Failed passwords 24h, Invalid users 24h, Accepted succès 24h, Timeline failures auth, Détails failures) | SOC focus security FW3-Final, keynote |
 
 ## 5. Data view utilisée
 
@@ -68,13 +69,30 @@ Cette data view est embarquée dans chaque export de dashboard (option `Include 
 
 ## 7. Alerts (rules)
 
-À venir : 2-3 rules exportées sous `infra/kibana/alerts/`.
+Trois rules opérationnelles exportées sous `alerts/cia-security-alerts.ndjson`.
+Le connector `CIA Server Log` (Server log Kibana, écrit dans les logs du serveur Kibana) est inclus dans l'export.
 
-Plan prévu :
+| Rule | Sévérité | Condition | Fenêtre | Check | Action |
+|---|---|---|---|---|---|
+| `ALERT-SSH-FAIL-BURST` | P2 | `count(message: "Failed password")` IS ABOVE 5 | 5 min | 1 min | Server log (level warning) |
+| `ALERT-AUDIT-TAMPER` | P1 | `count(message: ("/etc/ssh/" OR "/etc/sudoers" OR "/etc/pam.d/" OR "log_tamper" OR "ssh_config"))` IS ABOVE 0 | 10 min | 1 min | Server log (level error) |
+| `ALERT-FILEBEAT-HEARTBEAT-LOST` | P2 | `count(*)` IS BELOW 1 | 10 min | 2 min | Server log (level warning) |
 
-- `ALERT-SSH-FAIL-BURST` : >5 SSH failed passwords en 5 min → P2
-- `ALERT-AUDIT-TAMPER` : write détecté sur `/etc/ssh/`, `/etc/sudoers*`, `/etc/pam.d/` → P1
-- `ALERT-FILEBEAT-HEARTBEAT-LOST` : aucun event d'un hostname depuis 10 min → P2
+Pré-requis Kibana pour activer Alerting :
+
+```yaml
+# docker-compose.yml (service kibana)
+environment:
+  - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=<32+ random chars>
+  - XPACK_REPORTING_ENCRYPTIONKEY=<32+ random chars>
+  - XPACK_SECURITY_ENCRYPTIONKEY=<32+ random chars>
+```
+
+Sans ces 3 clés, le framework Alerting refuse de démarrer (`Additional setup required`).
+Pour la prod, externaliser dans un `.env` non versionné. Pour la démo locale, valeurs en clair acceptables.
+
+TODO post-keynote : remplacer le Server log connector par un connector Slack ou Webhook
+pour notifications externes réelles (Server log = trace uniquement dans `docker logs kibana-cia`).
 
 ## 8. Dépendances runtime
 
@@ -103,3 +121,4 @@ curl -s "http://localhost:9200/cia-services-s2-*/_count"
 | Date | Action |
 |---|---|
 | 2026-06-20 | Création initiale : dashboard `CIA — Observability — services-s2` post-runtime |
+| 2026-06-21 | Ajout dashboard `CIA — SSH Security Monitor` + 3 alert rules (SSH-FAIL-BURST, AUDIT-TAMPER, FILEBEAT-HEARTBEAT-LOST) + connector Server log + encryption keys Kibana |
