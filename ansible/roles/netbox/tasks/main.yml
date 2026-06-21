@@ -1,125 +1,28 @@
 ---
-# Role: netbox — déploie NetBox via Docker compose + reverse proxy Caddy.
-# Couvre : network_ip_mngmt.
+# Role: netbox — IPAM (NetBox 4.x) déployé via Docker compose + Caddy.
+# Source de vérité : networking/addressing.yml.
+# Couvre les critères : network_ipam, network_segmentation (preuves), bonus_advanced_monitoring.
+#
+# Découpage en 2 sub-playbooks pour permettre exécution sélective via tags :
+#   - install.yml  (tag: netbox-install) — déploiement Docker + NetBox + Caddy
+#   - seed.yml     (tag: netbox-sync)    — import du plan d'adressage
+#
+# Exemples :
+#   # Première installation complète :
+#   ansible-playbook playbooks/siteA.yml --tags netbox
+#
+#   # Re-sync après modification de addressing.yml (sans réinstaller) :
+#   ansible-playbook playbooks/siteA.yml --tags netbox-sync
+#
+#   # Réinstallation Docker seul (debug) :
+#   ansible-playbook playbooks/siteA.yml --tags netbox-install
 
-- name: "[netbox] Pré-requis (paquets utilitaires + keyrings dir)"
-  ansible.builtin.apt:
-    name:
-      - ca-certificates
-      - curl
-      - gnupg
-    state: present
-    update_cache: yes
+- name: "[netbox] Phase 1 — Install Docker + NetBox + Caddy"
+  ansible.builtin.import_tasks: install.yml
+  when: netbox_install_enabled | bool
+  tags: [netbox, netbox-install]
 
-- name: "[netbox] Créer /etc/apt/keyrings"
-  ansible.builtin.file:
-    path: /etc/apt/keyrings
-    state: directory
-    mode: "0755"
-
-- name: "[netbox] Clé GPG officielle Docker"
-  ansible.builtin.get_url:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    dest: /etc/apt/keyrings/docker.asc
-    mode: "0644"
-
-- name: "[netbox] Repo APT officiel Docker"
-  ansible.builtin.apt_repository:
-    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-    state: present
-    filename: docker
-    update_cache: yes
-
-- name: "[netbox] Installer Docker CE + Compose plugin"
-  ansible.builtin.apt:
-    name:
-      - docker-ce
-      - docker-ce-cli
-      - containerd.io
-      - docker-buildx-plugin
-      - docker-compose-plugin
-    state: present
-    update_cache: yes
-
-- name: "[netbox] Activer le service Docker"
-  ansible.builtin.service:
-    name: docker
-    state: started
-    enabled: true
-
-- name: "[netbox] Créer le répertoire de déploiement"
-  ansible.builtin.file:
-    path: /opt/netbox
-    state: directory
-    owner: root
-    group: root
-    mode: "0750"
-
-- name: "[netbox] Cloner le repo officiel netbox-docker"
-  ansible.builtin.git:
-    repo: https://github.com/netbox-community/netbox-docker.git
-    dest: /opt/netbox
-    version: "release"
-    force: no
-  register: netbox_git
-
-- name: "[netbox] Configurer env.d/netbox.env (tuning + clé secrète)"
-  ansible.builtin.template:
-    src: netbox.env.j2
-    dest: /opt/netbox/env/netbox.env
-    owner: root
-    group: root
-    mode: "0600"
-  notify: restart netbox
-
-- name: "[netbox] docker-compose.override.yml (exposer sur localhost uniquement)"
-  ansible.builtin.copy:
-    dest: /opt/netbox/docker-compose.override.yml
-    owner: root
-    group: root
-    mode: "0644"
-    content: |
-      ---
-      services:
-        netbox:
-          ports:
-            - "127.0.0.1:8000:8080"
-  notify: restart netbox
-
-- name: "[netbox] Démarrer la stack"
-  community.docker.docker_compose_v2:
-    project_src: /opt/netbox
-    state: present
-
-- name: "[netbox] Installer Caddy (reverse proxy HTTPS)"
-  ansible.builtin.apt:
-    name: caddy
-    state: present
-
-- name: "[netbox] Caddyfile"
-  ansible.builtin.template:
-    src: Caddyfile.j2
-    dest: /etc/caddy/Caddyfile
-    mode: "0644"
-  notify: reload caddy
-
-- name: "[netbox] Attendre que NetBox réponde"
-  ansible.builtin.uri:
-    url: "http://127.0.0.1:8000/api/"
-    status_code: [200, 302, 403]
-  register: nb_ready
-  until: nb_ready.status == 200 or nb_ready.status == 403
-  retries: 30
-  delay: 10
-
-- name: "[netbox] Importer le plan d'adressage depuis networking/addressing.yml"
-  when: netbox_seed_enabled | default(true) | bool
-  ansible.builtin.script:
-    cmd: "{{ role_path }}/files/seed_netbox.py {{ playbook_dir }}/../../networking/addressing.yml"
-  environment:
-    NETBOX_URL: "{{ netbox_url }}"
-    NETBOX_TOKEN: "{{ netbox_admin_token }}"
-  args:
-    executable: python3
-  delegate_to: localhost
-  run_once: true
+- name: "[netbox] Phase 2 — Seed depuis addressing.yml"
+  ansible.builtin.import_tasks: seed.yml
+  when: netbox_seed_enabled | bool
+  tags: [netbox, netbox-sync]

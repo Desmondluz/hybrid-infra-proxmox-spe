@@ -1,0 +1,39 @@
+---
+# Defaults for the netbox role.
+#
+# All variables can be overridden in `group_vars/all.yml`, `group_vars/siteA.yml`,
+# or via `--extra-vars` on the command line.
+
+# --- Deployment toggles -----------------------------------------------------
+
+# Install Docker + Caddy + clone netbox-docker + start the stack.
+# Disable when the host already runs NetBox or when running seed-only.
+netbox_install_enabled: true
+
+# Run the seed_netbox.py script after NetBox is up, importing
+# networking/addressing.yml as the single source of truth for sites/prefixes/IPs.
+# Idempotent: re-running only updates what changed.
+netbox_seed_enabled: true
+
+# --- API access -------------------------------------------------------------
+
+# Public URL of the NetBox API (exposed by Caddy reverse proxy).
+netbox_url: "https://netbox.s1.lan"
+
+# Admin token, loaded from Vault in production.
+# In dev/CI, override with a fake token to dry-run the seed.
+netbox_admin_token: "{{ vault_netbox_admin_token | default('CHANGEME-LOAD-FROM-VAULT') }}"
+
+# --- Source of truth --------------------------------------------------------
+
+# Path to the addressing plan (single source of truth for IPAM).
+# Resolved relative to the playbook directory, so the role works for any site.
+netbox_addressing_file: "{{ playbook_dir }}/../../networking/addressing.yml"
+
+# --- Tuning -----------------------------------------------------------------
+
+# Timeout (seconds) when waiting for NetBox API to become ready.
+netbox_ready_timeout: 300
+
+# Retry every N seconds when polling NetBox readiness.
+netbox_ready_interval: 10

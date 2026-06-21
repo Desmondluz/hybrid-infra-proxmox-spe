@@ -1,0 +1,63 @@
+---
+# Seed NetBox from networking/addressing.yml.
+# Idempotent: re-running only updates what changed (get-or-create semantics in
+# seed_netbox.py). Use the dedicated tag to run only this part without touching
+# the install (e.g., after editing addressing.yml).
+#
+# Usage:
+#   ansible-playbook -i inventories/siteA.ini playbooks/siteA.yml \
+#       --tags netbox-sync
+
+- name: "[netbox-sync] Vérifier que addressing.yml existe"
+  ansible.builtin.stat:
+    path: "{{ netbox_addressing_file }}"
+  register: addressing_file_stat
+  delegate_to: localhost
+  run_once: true
+  tags: [netbox-sync]
+
+- name: "[netbox-sync] FAIL si addressing.yml introuvable"
+  ansible.builtin.fail:
+    msg: |
+      Le fichier addressing.yml est introuvable à l'emplacement :
+        {{ netbox_addressing_file }}
+      Override la variable netbox_addressing_file dans group_vars ou
+      via --extra-vars.
+  when: not addressing_file_stat.stat.exists
+  delegate_to: localhost
+  run_once: true
+  tags: [netbox-sync]
+
+- name: "[netbox-sync] Valider la structure de addressing.yml (CI-grade)"
+  ansible.builtin.command:
+    cmd: >
+      python3 {{ playbook_dir }}/../../scripts/netbox/validate-addressing.py
+      {{ netbox_addressing_file }}
+  changed_when: false
+  delegate_to: localhost
+  run_once: true
+  tags: [netbox-sync]
+
+- name: "[netbox-sync] Importer le plan d'adressage dans NetBox"
+  ansible.builtin.script:
+    cmd: >
+      {{ role_path }}/files/seed_netbox.py
+      {{ netbox_addressing_file }}
+  environment:
+    NETBOX_URL: "{{ netbox_url }}"
+    NETBOX_TOKEN: "{{ netbox_admin_token }}"
+  args:
+    executable: python3
+  delegate_to: localhost
+  run_once: true
+  register: seed_result
+  changed_when: "'[+]' in seed_result.stdout"
+  tags: [netbox-sync]
+
+- name: "[netbox-sync] Résumé du seed"
+  ansible.builtin.debug:
+    msg: "{{ seed_result.stdout_lines }}"
+  when: seed_result.stdout_lines is defined
+  delegate_to: localhost
+  run_once: true
+  tags: [netbox-sync]

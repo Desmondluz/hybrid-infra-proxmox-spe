@@ -26,7 +26,19 @@ sudo docker compose restart netbox     # redémarrage sans perte données
 
 Le script `ansible/roles/netbox/files/seed_netbox.py` lit
 `networking/addressing.yml` et crée/maj sites, prefixes, IP addresses.
-Idempotent.
+Idempotent (get-or-create).
+
+**Pattern auto-sync complet** (CI validate → Ansible apply via tag dédié)
+documenté dans [`docs/runbooks/netbox-sync.md`](netbox-sync.md). Procédure
+standard recommandée :
+
+```bash
+# Re-sync uniquement depuis addressing.yml (sans réinstaller Docker/NetBox)
+ansible-playbook -i ansible/inventories/siteA.ini \
+    ansible/playbooks/siteA.yml --tags netbox-sync
+```
+
+Fallback manuel sans Ansible :
 
 ```bash
 NETBOX_URL=https://netbox.s1.lan \
@@ -34,7 +46,14 @@ NETBOX_TOKEN=$(vault kv get -field=token kv/cia/netbox/admin-token) \
 python3 ansible/roles/netbox/files/seed_netbox.py networking/addressing.yml
 ```
 
-Relancer après toute modification du plan d'adressage.
+Validation locale avant push (jouée aussi en CI via
+`.github/workflows/netbox-validate.yml`) :
+
+```bash
+python3 scripts/netbox/validate-addressing.py
+```
+
+Relancer la re-sync Ansible après toute modification du plan d'adressage.
 
 ## 4. Sauvegarde PostgreSQL
 

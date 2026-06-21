@@ -1,0 +1,134 @@
+---
+# Validates the IPAM source of truth (networking/addressing.yml) and the
+# NetBox seed script on every change. Ensures that addressing.yml has the
+# required structure (sites, networks, hosts), valid CIDRs, and no overlap
+# before it lands on main — preventing a broken seed against the real NetBox.
+#
+# Triggers on changes to:
+#   - networking/addressing.yml (the IPAM source of truth)
+#   - ansible/roles/netbox/** (role code + seed script)
+#   - scripts/netbox/** (validator + helpers)
+#   - This workflow file itself
+
+name: netbox-validate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - networking/addressing.yml
+      - ansible/roles/netbox/**
+      - scripts/netbox/**
+      - .github/workflows/netbox-validate.yml
+  pull_request:
+    paths:
+      - networking/addressing.yml
+      - ansible/roles/netbox/**
+      - scripts/netbox/**
+      - .github/workflows/netbox-validate.yml
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  validate-addressing:
+    name: Validate addressing.yml schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install validator dependencies
+        run: pip install pyyaml requests
+
+      - name: Validate addressing.yml schema + CIDRs
+        run: python3 scripts/netbox/validate-addressing.py
+
+      - name: Import-check seed_netbox.py (syntax + dependencies)
+        run: |
+          python3 -c "
+          import importlib.util, pathlib
+          spec = importlib.util.spec_from_file_location(
+              'seed_netbox',
+              pathlib.Path('ansible/roles/netbox/files/seed_netbox.py')
+          )
+          mod = importlib.util.module_from_spec(spec)
+          import os
+          os.environ.setdefault('NETBOX_URL', 'http://ci-mock.localhost')
+          os.environ.setdefault('NETBOX_TOKEN', 'ci-mock-token')
+          spec.loader.exec_module(mod)
+          print('seed_netbox.py imports cleanly')
+          "
+
+      - name: Lint validator script
+        run: |
+          python3 -m py_compile scripts/netbox/validate-addressing.py
+          python3 -m py_compile ansible/roles/netbox/files/seed_netbox.py
+
+  dry-run-seed:
+    name: Dry-run seed against mock NetBox
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: validate-addressing
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install pyyaml requests pytest-httpserver
+
+      - name: Run seed against a local mock HTTP server
+        run: |
+          python3 <<'PY'
+          import os, subprocess, sys, threading
+          from http.server import BaseHTTPRequestHandler, HTTPServer
+
+          # Minimal NetBox API mock — answers any /api/* request with empty
+          # results (forces seed to POST) then echoes a fake created object.
+          class MockNetBox(BaseHTTPRequestHandler):
+              def _ok(self, body):
+                  self.send_response(200)
+                  self.send_header("Content-Type", "application/json")
+                  self.end_headers()
+                  self.wfile.write(body.encode())
+              def do_GET(self):
+                  self._ok('{"results":[]}')
+              def do_POST(self):
+                  length = int(self.headers.get("Content-Length", 0))
+                  _ = self.rfile.read(length)
+                  self._ok('{"id":1,"name":"mock","prefix":"10.0.0.0/24"}')
+              def log_message(self, *args, **kwargs):
+                  pass  # silence
+
+          srv = HTTPServer(("127.0.0.1", 18080), MockNetBox)
+          t = threading.Thread(target=srv.serve_forever, daemon=True)
+          t.start()
+
+          env = os.environ.copy()
+          env["NETBOX_URL"] = "http://127.0.0.1:18080"
+          env["NETBOX_TOKEN"] = "ci-mock-token"
+
+          r = subprocess.run(
+              [sys.executable, "ansible/roles/netbox/files/seed_netbox.py",
+               "networking/addressing.yml"],
+              env=env, capture_output=True, text=True, timeout=60,
+          )
+          print("STDOUT:", r.stdout)
+          print("STDERR:", r.stderr)
+          srv.shutdown()
+          sys.exit(r.returncode)
+          PY
