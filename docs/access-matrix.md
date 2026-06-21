@@ -58,13 +58,19 @@ INT          ⚠2    ✘     —     ⚠3    ✘     —
 
 ## 4. Matrice RÔLES / UTILISATEURS
 
-| Utilisateur       | Ressources                             | Authentification          |
-|-------------------|----------------------------------------|---------------------------|
-| `admin` (GR46)    | Proxmox, pfSense, Vault root           | SSH key + TOTP            |
-| `ops`             | Ansible runs, Vault policies `pfsense` | SSH key + TOTP bastion    |
-| `netbox-ro`       | NetBox UI lecture                      | SSO local                 |
-| `terraform-ci`    | Provider Proxmox + Vault policy proxmox| Token CI scoped           |
-| Service `filebeat`| Logstash:5044                          | Mutual TLS (v2)           |
+| Utilisateur       | Ressources                             | Authentification          | Forward TCP |
+|-------------------|----------------------------------------|---------------------------|-------------|
+| `admin` (GR46)    | Proxmox, pfSense, Vault root           | SSH key + TOTP            | refusé      |
+| `ops`             | Ansible runs, Vault policies `pfsense` | SSH key + TOTP bastion    | refusé      |
+| `desmon`          | Opérateur infra (tunnel SSH inverse)   | SSH key + TOTP bastion    | **autorisé** (exception nominative, `bastion_forward_users`) |
+| `netbox-ro`       | NetBox UI lecture                      | SSO local                 | refusé      |
+| `terraform-ci`    | Provider Proxmox + Vault policy proxmox| Token CI scoped           | refusé      |
+| Service `filebeat`| Logstash:5044                          | Mutual TLS (v2)           | refusé      |
+
+**Pattern Forward TCP** : `AllowTcpForwarding no` global dans sshd (mitige
+pivot SSH bastion). Exception nominative pour l'opérateur infra unique
+via `Match User` Jinja-templatisé. Voir `ansible/roles/bastion/templates/sshd_config_bastion.j2`
+et `ansible/roles/bastion/defaults/main.yml` (variable `bastion_forward_users`).
 
 ## 5. Killswitch
 

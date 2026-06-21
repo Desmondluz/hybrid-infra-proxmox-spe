@@ -23,6 +23,10 @@ vpn_remote_protocol: tcp                              # cohérent avec group_var
 bastion_ip: "192.168.0.10"
 bastion_wan_port: 2222
 bastion_mfa_enabled: true
+# Forward TCP : bloque pour tous SAUF operateur infra (desmon).
+# Permet le tunnel SSH inverse Filebeat sans ouvrir le pivot SSH.
+# Voir docs/access-matrix.md §4.
+bastion_forward_users: ["desmon"]
 
 # Observabilité locale (forwarder)
 elastic_forwarder_ip: "192.168.10.20"

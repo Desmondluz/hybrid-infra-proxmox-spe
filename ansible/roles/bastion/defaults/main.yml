@@ -6,3 +6,26 @@ bastion_mfa_enabled: true
 # Port SSH exposé du bastion. Aligné sur l'inventaire (ansible_port=2222) et
 # group_vars/siteB.yml (bastion_wan_port).
 bastion_wan_port: 2222
+
+# Toggle : pousse le template sshd_config_bastion.j2 (durcissement complet).
+# Désactiver si l'hôte est dual-duty (ex: services-s2 ne doit pas écraser
+# le sshd_config principal).
+bastion_sshd_override: true
+
+# Liste des utilisateurs nominativement autorisés à faire du TCP forwarding
+# via le bastion. Par défaut VIDE : AllowTcpForwarding no globalement, ce qui
+# mitige le pivot SSH (un attaquant qui prend la main sur un user normal ne
+# peut pas utiliser le bastion comme rebond TCP).
+#
+# Ajouter l'opérateur infra (ex: desmon) pour autoriser le tunnel SSH inverse
+# Filebeat ou tout forwarding administratif tracé. Pattern de production
+# bastion : forward bloqué globalement + exception nominative tracée.
+# Surchargé dans group_vars/siteB.yml.
+#
+# Exemple : bastion_forward_users: [desmon, ops]
+#   → génère dans sshd_config :
+#       Match User desmon
+#           AllowTcpForwarding yes
+#       Match User ops
+#           AllowTcpForwarding yes
+bastion_forward_users: []
