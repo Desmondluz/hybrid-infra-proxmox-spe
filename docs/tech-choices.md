@@ -146,6 +146,16 @@ Chaque entrée liste le **contexte**, le **choix**, les **alternatives**
   migration vers Azure Storage planifiée dès passage en équipe ou en
   production. Procédure documentée dans
   [`docs/runbooks/terraform-state.md`](runbooks/terraform-state.md) §4.
+- **Code ready-to-activate** (commité 2026-06-21) :
+  - [`terraform/backend.tf.example`](../terraform/backend.tf.example) :
+    bloc `terraform { backend "azurerm" { ... } }` complet, prêt à copier
+    dans chaque stack (siteA, siteB, siteC-azure) pour activation
+    instantanée. Auth Azure AD activée (`use_azuread_auth = true`).
+  - [`scripts/terraform/bootstrap-azure-backend.sh`](../scripts/terraform/bootstrap-azure-backend.sh) :
+    script idempotent qui provisionne le Resource Group + Storage Account +
+    Container Blob avec versioning et soft-delete 30 j. Durée 2 min.
+  - Migration totale (les 3 stacks) en 15 min après bootstrap, sans
+    perte de state (terraform init -migrate-state copie l'existant).
 
 ## 15. Journal de révision
 
@@ -153,3 +163,4 @@ Chaque entrée liste le **contexte**, le **choix**, les **alternatives**
 |-------------|--------|---------------------------------------------------------|
 | 2026-04-18  | GR46   | Version initiale post follow-up #1                      |
 | 2026-06-20  | GR46   | ADR-14 — backend Terraform local + plan migration Azure |
+| 2026-06-21  | GR46   | ADR-14 enrichi — code ready-to-activate `backend.tf.example` + `bootstrap-azure-backend.sh` commités |

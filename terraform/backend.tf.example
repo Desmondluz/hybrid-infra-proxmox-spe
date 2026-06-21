@@ -1,0 +1,70 @@
+# ============================================================================
+# Backend Terraform distant — Azure Storage (configuration ready-to-activate)
+# ============================================================================
+#
+# Le projet utilise actuellement le backend local par défaut. Ce fichier
+# documente la configuration cible (backend distant Azure Storage) prête
+# à activer post-keynote, dès que les quotas Azure B-series Students seront
+# débloqués (cf docs/backlog/followup3.md §5d).
+#
+# Pourquoi distant ?
+#   - Collaboration multi-développeurs (verrouillage de state par lease)
+#   - Résilience (storage Azure répliqué LRS minimum)
+#   - Audit centralisé via Azure Monitor / Activity Log
+#   - Suppression du risque "perte de state laptop"
+#
+# Pourquoi Azure Storage vs S3/Terraform Cloud ?
+#   - Cohérent avec notre Site C Azure (1 seul cloud provider)
+#   - Free tier Students (5 Go inclus, largement suffisant pour notre state)
+#   - Intégration native Entra ID (auth managed identity)
+#   - Pas de quota Run-time (vs Terraform Cloud free 5 users + 500 runs/mois)
+#
+# Voir : docs/tech-choices.md ADR-14
+#        docs/runbooks/terraform-state.md (procédure migration complète)
+#
+# ============================================================================
+# Procédure d'activation (post-keynote, 15 min)
+# ============================================================================
+#
+#   # 1. Provisionner le Storage Account (script fourni)
+#   bash scripts/terraform/bootstrap-azure-backend.sh
+#
+#   # 2. Renommer ce fichier dans chaque stack qui consomme le backend :
+#   for STACK in siteA siteB siteC-azure; do
+#       cp terraform/backend.tf.example terraform/$STACK/backend.tf
+#       # Adapter la "key" pour qu'elle reflète le nom du stack
+#       sed -i "s|KEY_TO_ADAPT|$STACK.tfstate|" terraform/$STACK/backend.tf
+#   done
+#
+#   # 3. Migrer le state local → distant (chaque stack)
+#   cd terraform/siteA
+#   terraform init -migrate-state
+#   # Confirmer "yes" quand Terraform demande la migration
+#
+# ============================================================================
+
+terraform {
+  backend "azurerm" {
+    # Resource group dédié au state (NE PAS confondre avec les RG des stacks)
+    resource_group_name = "rg-cia-gr46-tfstate"
+
+    # Storage Account name (must be globally unique, lowercase alphanumeric)
+    storage_account_name = "ciagr46tfstate"
+
+    # Container Blob Storage qui hébergera les state files
+    container_name = "tfstate"
+
+    # Clé unique par stack — à adapter (siteA / siteB / siteC-azure)
+    # Lors de l'activation, sed renomme automatiquement.
+    key = "KEY_TO_ADAPT"
+
+    # Authentification : Azure CLI login (`az login`) lit ~/.azure/credentials
+    # En CI : utiliser ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_SUBSCRIPTION_ID,
+    # ARM_TENANT_ID (Service Principal) ou Managed Identity (use_msi = true).
+    use_azuread_auth = true
+
+    # Activer le snapshot blob versioning côté storage (configuré par
+    # bootstrap-azure-backend.sh : versioning + soft-delete 30 jours).
+    # Donne automatiquement un historique complet du state.
+  }
+}
